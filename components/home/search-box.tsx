@@ -187,68 +187,77 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <form onSubmit={handleSubmitSearch}>
-        <div
-          className={`rounded-[1.4rem] border border-outline-variant/30 bg-surface-container-lowest p-2 shadow-[0_10px_30px_rgba(0,35,111,0.06)] transition-all duration-500 ${
-            isChatOpen
-              ? "shadow-[0_22px_60px_rgba(0,35,111,0.1)] ring-2 ring-primary/10"
-              : "focus-within:ring-2 focus-within:ring-primary/20"
-          }`}
-        >
+      <div
+        className={`overflow-hidden rounded-[1.6rem] border border-outline-variant/30 transition-all duration-500 ease-out ${
+          isChatOpen
+            ? "bg-[linear-gradient(180deg,rgba(220,225,255,0.52)_0%,rgba(255,255,255,0.98)_18%,rgba(255,255,255,1)_100%)] shadow-[0_28px_80px_rgba(0,35,111,0.16)] ring-2 ring-primary/10"
+            : "bg-surface-container-lowest shadow-[0_10px_30px_rgba(0,35,111,0.06)]"
+        }`}
+      >
+        <form onSubmit={handleSubmitSearch}>
           <div className="flex items-center gap-3 px-4">
-            <SearchIcon className="h-5 w-5 text-outline" />
+            <SearchIcon
+              className={`h-5 w-5 transition-colors duration-300 ${
+                isChatOpen ? "text-primary" : "text-outline"
+              }`}
+            />
             <input
               type="text"
               name="q"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="예: 검은 가죽 지갑, 홍대입구"
-              className="w-full bg-transparent py-4 text-lg text-on-surface outline-none placeholder:text-outline-variant"
+              className="w-full bg-transparent py-5 text-lg text-on-surface outline-none placeholder:text-outline-variant"
             />
+            <button
+              type="submit"
+              disabled={isPending}
+              className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+            >
+              {isPending ? "검색 중..." : isChatOpen ? "확인" : "검색"}
+            </button>
           </div>
-        </div>
+        </form>
 
-        <div className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-primary/80">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-          </span>
-          지금도 계속 찾고 있습니다
-        </div>
-
-        <div className="mt-8 flex flex-col justify-center gap-4 md:flex-row">
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-lg bg-primary px-10 py-4 text-lg font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
-          >
-            {isPending ? "검색 중..." : "검색하기"}
-          </button>
+        <div className="flex items-center justify-between gap-3 px-4 pb-4 text-sm font-semibold text-primary/80">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+            {isChatOpen
+              ? "몇 가지만 더 확인하고 바로 결과로 넘길게요"
+              : "지금도 계속 찾고 있습니다"}
+          </div>
           <Link
             href={trackHref}
-            className="rounded-lg border-2 border-primary/20 bg-primary/10 px-10 py-4 text-lg font-extrabold text-primary transition-colors transition-transform hover:bg-primary/15 active:scale-95"
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${
+              isChatOpen
+                ? "border-primary/10 bg-white/80 text-primary hover:bg-white"
+                : "border-primary/10 bg-primary/5 text-primary hover:bg-primary/10"
+            }`}
           >
             계속 찾아줘
           </Link>
         </div>
-      </form>
 
-      <SearchChatPanel
-        isOpen={isChatOpen}
-        messages={messages}
-        draftAnswer={draftAnswer}
-        currentPrompt={currentPrompt ?? undefined}
-        summaryQuery={missingFields.length === 0 ? summaryQuery : undefined}
-        isNavigating={isPending}
-        onDraftAnswerChange={setDraftAnswer}
-        onSubmitAnswer={() => handleSubmitAnswer()}
-        onSuggestionSelect={handleSubmitAnswer}
-        onSearchNow={() => navigateToSearch(summaryQuery)}
-        onClose={() => {
-          resetChat();
-          setIsChatOpen(false);
-        }}
-      />
+        <SearchChatPanel
+          isOpen={isChatOpen}
+          messages={messages}
+          draftAnswer={draftAnswer}
+          currentPrompt={currentPrompt ?? undefined}
+          summaryQuery={missingFields.length === 0 ? summaryQuery : undefined}
+          isNavigating={isPending}
+          onDraftAnswerChange={setDraftAnswer}
+          onSubmitAnswer={() => handleSubmitAnswer()}
+          onSuggestionSelect={handleSubmitAnswer}
+          onSearchNow={() => navigateToSearch(summaryQuery)}
+          onClose={() => {
+            resetChat();
+            setIsChatOpen(false);
+          }}
+        />
+      </div>
     </div>
   );
 }

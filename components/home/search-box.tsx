@@ -452,7 +452,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
               {attachedImages.length > 0 ? (
                 <div className="no-scrollbar mt-3 overflow-x-auto">
-                  <div className="flex min-w-max gap-3 rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2.5">
+                  <div className="flex min-w-max gap-3 px-1 py-1">
                     {attachedImages.map((image) => (
                       <div key={image.id} className="relative h-14 w-14 shrink-0">
                         <Image

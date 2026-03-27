@@ -79,14 +79,19 @@ export function SearchChatPanel({
           {messages.map((message, index) => {
             const isAssistant = message.role === "assistant";
             const isFirstUserBubble = index === 0 && !isAssistant;
+            const shouldAnimateBubble = !(isFirstUserBubble && hideFirstUserBubble);
 
             return (
               <div
                 key={message.id}
-                className={`animate-rise-in flex ${
+                className={`${shouldAnimateBubble ? "animate-rise-in" : ""} flex ${
                   isAssistant ? "justify-start" : "justify-end"
                 }`}
-                style={{ animationDelay: `${index * 80}ms` }}
+                style={
+                  shouldAnimateBubble
+                    ? { animationDelay: `${index * 80}ms` }
+                    : undefined
+                }
               >
                 <div
                   ref={isFirstUserBubble ? firstUserBubbleRef : undefined}

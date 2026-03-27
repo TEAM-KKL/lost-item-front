@@ -451,8 +451,8 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
               </div>
 
               {attachedImages.length > 0 ? (
-                <div className="no-scrollbar mt-3 overflow-x-auto">
-                  <div className="flex min-w-max gap-3 px-1 py-1">
+                <div className="no-scrollbar mt-3 overflow-x-auto pt-2">
+                  <div className="flex min-w-max gap-3 px-1">
                     {[...attachedImages].reverse().map((image) => (
                       <div key={image.id} className="relative h-14 w-14 shrink-0">
                         <Image
@@ -466,7 +466,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(image.id)}
-                          className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-on-primary shadow-[0_8px_16px_rgba(0,35,111,0.18)] transition-transform hover:scale-105 active:scale-95"
+                          className="absolute -right-1.5 -top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary shadow-[0_8px_16px_rgba(0,35,111,0.18)] transition-transform hover:scale-105 active:scale-95"
                           aria-label="첨부 이미지 제거"
                         >
                           ×

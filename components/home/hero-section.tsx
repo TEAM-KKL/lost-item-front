@@ -1,5 +1,7 @@
 import { SearchBox } from "@/components/home/search-box";
 
+const defaultSearchQuery = "검은 가죽 지갑, 홍대입구";
+
 export function HeroSection() {
   return (
     <section className="px-6 py-20 text-center md:py-24">
@@ -11,7 +13,7 @@ export function HeroSection() {
           설명만 하면 계속 찾아드립니다
         </p>
         <div className="mt-10">
-          <SearchBox />
+          <SearchBox defaultQuery={defaultSearchQuery} />
         </div>
       </div>
     </section>

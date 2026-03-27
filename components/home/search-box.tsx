@@ -1,8 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useRef, useState, useTransition } from "react";
+import {
+  type CSSProperties,
+  type FormEvent,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   type ChatMessage,
   SearchChatPanel,
@@ -99,6 +105,11 @@ function wait(ms: number) {
 
 export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const router = useRouter();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchRowRef = useRef<HTMLDivElement>(null);
+  const firstUserBubbleRef = useRef<HTMLDivElement>(null);
+  const morphTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const morphStartRectRef = useRef<DOMRect | null>(null);
   const [query, setQuery] = useState(defaultQuery);
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -110,13 +121,17 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const [isPending, startTransition] = useTransition();
   const [searchStage, setSearchStage] = useState<SearchStage>("idle");
   const searchRunIdRef = useRef(0);
+  const [isMorphingFirstBubble, setIsMorphingFirstBubble] = useState(false);
+  const [morphBubble, setMorphBubble] = useState<{
+    text: string;
+    style: CSSProperties;
+  } | null>(null);
 
   const currentPrompt = missingFields[0] ? promptByField[missingFields[0]] : null;
   const summaryQuery = useMemo(
     () => buildSearchQuery(query, answers),
     [answers, query],
   );
-  const trackHref = `/search?q=${encodeURIComponent(summaryQuery)}#track-search`;
   const isStatusVisible = searchStage !== "idle" || isChatOpen;
   const stageCopy =
     {
@@ -137,11 +152,65 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
   function resetChat() {
     searchRunIdRef.current += 1;
+    if (morphTimeoutRef.current) {
+      clearTimeout(morphTimeoutRef.current);
+      morphTimeoutRef.current = null;
+    }
     setDraftAnswer("");
     setAnswers({});
     setMessages([]);
     setMissingFields([]);
     setSearchStage("idle");
+    setIsMorphingFirstBubble(false);
+    setMorphBubble(null);
+    morphStartRectRef.current = null;
+  }
+
+  function playFirstBubbleMorph(initialQuery: string) {
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const startRect = morphStartRectRef.current;
+    const targetRect = firstUserBubbleRef.current?.getBoundingClientRect();
+
+    if (!containerRect || !startRect || !targetRect) {
+      setIsMorphingFirstBubble(false);
+      setMorphBubble(null);
+      return;
+    }
+
+    setMorphBubble({
+      text: initialQuery,
+      style: {
+        top: startRect.top - containerRect.top + 8,
+        left: startRect.left - containerRect.left + 12,
+        width: startRect.width - 24,
+        height: startRect.height - 10,
+        opacity: 1,
+        transform: "scale(1)",
+      },
+    });
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setMorphBubble({
+          text: initialQuery,
+          style: {
+            top: targetRect.top - containerRect.top,
+            left: targetRect.left - containerRect.left,
+            width: targetRect.width,
+            height: targetRect.height,
+            opacity: 0.12,
+            transform: "scale(0.92)",
+          },
+        });
+      });
+    });
+
+    morphTimeoutRef.current = setTimeout(() => {
+      setMorphBubble(null);
+      setIsMorphingFirstBubble(false);
+      morphStartRectRef.current = null;
+      morphTimeoutRef.current = null;
+    }, 620);
   }
 
   function openClarifyFlow(
@@ -155,10 +224,18 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setAnswers({});
     setMissingFields(nextMissingFields);
     setSearchStage("ready");
+    setIsMorphingFirstBubble(true);
+    morphStartRectRef.current = searchRowRef.current?.getBoundingClientRect() ?? null;
     setMessages([
       createMessage("user", initialQuery),
       createMessage("assistant", firstPrompt.question),
     ]);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        playFirstBubbleMorph(initialQuery);
+      });
+    });
   }
 
   async function handleSubmitSearch(event: FormEvent<HTMLFormElement>) {
@@ -246,7 +323,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div ref={containerRef} className="relative mx-auto w-full max-w-3xl">
       <div
         className={`overflow-hidden rounded-[1.6rem] border border-outline-variant/30 transition-all duration-500 ease-out ${
           isChatOpen
@@ -260,7 +337,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           }`}
         >
           <form onSubmit={handleSubmitSearch}>
-            <div className="flex items-center gap-3 px-4">
+            <div ref={searchRowRef} className="flex items-center gap-3 px-4">
               <SearchIcon className="h-5 w-5 text-outline" />
               <input
                 type="text"
@@ -286,24 +363,12 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
             isStatusVisible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="flex items-center justify-between gap-3 px-4 pb-4 text-sm font-semibold text-primary/80">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              {stageCopy}
-            </div>
-            <Link
-              href={trackHref}
-              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${
-                isChatOpen
-                  ? "border-primary/10 bg-white/80 text-primary hover:bg-white"
-                  : "border-primary/10 bg-primary/5 text-primary hover:bg-primary/10"
-              }`}
-            >
-              계속 찾아줘
-            </Link>
+          <div className="flex items-center gap-2 px-4 pb-4 text-sm font-semibold text-primary/80">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+            {stageCopy}
           </div>
         </div>
 
@@ -314,6 +379,8 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           currentPrompt={currentPrompt ?? undefined}
           summaryQuery={missingFields.length === 0 ? summaryQuery : undefined}
           isNavigating={isPending}
+          firstUserBubbleRef={firstUserBubbleRef}
+          hideFirstUserBubble={isMorphingFirstBubble}
           onDraftAnswerChange={setDraftAnswer}
           onSubmitAnswer={() => handleSubmitAnswer()}
           onSuggestionSelect={handleSubmitAnswer}
@@ -323,6 +390,22 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
             setIsChatOpen(false);
           }}
         />
+
+        {morphBubble ? (
+          <div
+            className="pointer-events-none absolute z-20 overflow-hidden rounded-[1.25rem] bg-primary text-on-primary shadow-[0_18px_34px_rgba(0,35,111,0.22)]"
+            style={{
+              ...morphBubble.style,
+              position: "absolute",
+              transition:
+                "top 620ms cubic-bezier(0.2, 0.78, 0.2, 1), left 620ms cubic-bezier(0.2, 0.78, 0.2, 1), width 620ms cubic-bezier(0.2, 0.78, 0.2, 1), height 620ms cubic-bezier(0.2, 0.78, 0.2, 1), opacity 620ms ease, transform 620ms cubic-bezier(0.2, 0.78, 0.2, 1)",
+            }}
+          >
+            <div className="flex h-full items-center px-5 py-3">
+              <p className="truncate text-base font-semibold">{morphBubble.text}</p>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

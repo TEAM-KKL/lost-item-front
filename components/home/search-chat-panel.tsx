@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { ChevronDownIcon, SparklesIcon } from "@/components/ui/icons";
 
 export type ChatMessage = {
@@ -17,6 +18,8 @@ type SearchChatPanelProps = {
   };
   summaryQuery?: string;
   isNavigating: boolean;
+  firstUserBubbleRef?: RefObject<HTMLDivElement | null>;
+  hideFirstUserBubble?: boolean;
   onDraftAnswerChange: (value: string) => void;
   onSubmitAnswer: () => void;
   onSuggestionSelect: (value: string) => void;
@@ -31,6 +34,8 @@ export function SearchChatPanel({
   currentPrompt,
   summaryQuery,
   isNavigating,
+  firstUserBubbleRef,
+  hideFirstUserBubble = false,
   onDraftAnswerChange,
   onSubmitAnswer,
   onSuggestionSelect,
@@ -73,6 +78,7 @@ export function SearchChatPanel({
         <div className="no-scrollbar mt-5 flex max-h-[20rem] flex-col gap-3 overflow-y-auto pr-1">
           {messages.map((message, index) => {
             const isAssistant = message.role === "assistant";
+            const isFirstUserBubble = index === 0 && !isAssistant;
 
             return (
               <div
@@ -83,10 +89,13 @@ export function SearchChatPanel({
                 style={{ animationDelay: `${index * 80}ms` }}
               >
                 <div
+                  ref={isFirstUserBubble ? firstUserBubbleRef : undefined}
                   className={`max-w-[88%] rounded-[1.25rem] px-4 py-3 text-left shadow-[0_10px_24px_rgba(25,28,30,0.06)] ${
                     isAssistant
                       ? "rounded-bl-sm border border-slate-200/80 bg-slate-50 text-on-surface shadow-[0_18px_34px_rgba(25,28,30,0.08)]"
                       : "rounded-br-sm bg-primary text-on-primary shadow-[0_18px_34px_rgba(0,35,111,0.18)]"
+                  } ${
+                    isFirstUserBubble && hideFirstUserBubble ? "invisible" : ""
                   }`}
                 >
                   <span

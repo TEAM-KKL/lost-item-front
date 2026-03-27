@@ -115,14 +115,20 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setMissingFields([]);
   }
 
-  function openClarifyFlow(nextMissingFields: ClarifyField[]) {
+  function openClarifyFlow(
+    nextMissingFields: ClarifyField[],
+    initialQuery: string,
+  ) {
     const firstPrompt = promptByField[nextMissingFields[0]];
 
     setIsChatOpen(true);
     setDraftAnswer("");
     setAnswers({});
     setMissingFields(nextMissingFields);
-    setMessages([createMessage("assistant", firstPrompt.question)]);
+    setMessages([
+      createMessage("user", initialQuery),
+      createMessage("assistant", firstPrompt.question),
+    ]);
   }
 
   function handleSubmitSearch(event: FormEvent<HTMLFormElement>) {
@@ -142,7 +148,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       return;
     }
 
-    openClarifyFlow(assessment.missingFields);
+    openClarifyFlow(assessment.missingFields, nextQuery);
   }
 
   function handleSubmitAnswer(rawValue?: string) {
@@ -194,30 +200,32 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
             : "bg-surface-container-lowest shadow-[0_10px_30px_rgba(0,35,111,0.06)]"
         }`}
       >
-        <form onSubmit={handleSubmitSearch}>
-          <div className="flex items-center gap-3 px-4">
-            <SearchIcon
-              className={`h-5 w-5 transition-colors duration-300 ${
-                isChatOpen ? "text-primary" : "text-outline"
-              }`}
-            />
-            <input
-              type="text"
-              name="q"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="예: 검은 가죽 지갑, 홍대입구"
-              className="w-full bg-transparent py-5 text-lg text-on-surface outline-none placeholder:text-outline-variant"
-            />
-            <button
-              type="submit"
-              disabled={isPending}
-              className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
-            >
-              {isPending ? "검색 중..." : isChatOpen ? "확인" : "검색"}
-            </button>
-          </div>
-        </form>
+        <div
+          className={`overflow-hidden transition-all duration-500 ease-out ${
+            isChatOpen ? "max-h-0 opacity-0" : "max-h-28 opacity-100"
+          }`}
+        >
+          <form onSubmit={handleSubmitSearch}>
+            <div className="flex items-center gap-3 px-4">
+              <SearchIcon className="h-5 w-5 text-outline" />
+              <input
+                type="text"
+                name="q"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="예: 검은 가죽 지갑, 홍대입구"
+                className="w-full bg-transparent py-5 text-lg text-on-surface outline-none placeholder:text-outline-variant"
+              />
+              <button
+                type="submit"
+                disabled={isPending}
+                className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+              >
+                {isPending ? "검색 중..." : "검색"}
+              </button>
+            </div>
+          </form>
+        </div>
 
         <div className="flex items-center justify-between gap-3 px-4 pb-4 text-sm font-semibold text-primary/80">
           <div className="flex items-center gap-2">

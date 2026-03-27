@@ -85,8 +85,8 @@ export function SearchChatPanel({
                 <div
                   className={`max-w-[88%] rounded-[1.25rem] px-4 py-3 text-left shadow-[0_10px_24px_rgba(25,28,30,0.06)] ${
                     isAssistant
-                      ? "rounded-bl-sm bg-white/90 text-on-surface"
-                      : "rounded-br-sm bg-primary text-on-primary"
+                      ? "rounded-bl-sm border border-slate-200/80 bg-slate-50 text-on-surface shadow-[0_18px_34px_rgba(25,28,30,0.08)]"
+                      : "rounded-br-sm bg-primary text-on-primary shadow-[0_18px_34px_rgba(0,35,111,0.18)]"
                   }`}
                 >
                   <span
@@ -106,16 +106,7 @@ export function SearchChatPanel({
         <div className="mt-5 rounded-[1.25rem] border border-primary/10 bg-primary-fixed/30 p-4 backdrop-blur-sm">
           {currentPrompt ? (
             <>
-              <div className="text-left">
-                <p className="font-headline text-lg font-extrabold tracking-tight text-primary">
-                  {currentPrompt.title}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-on-surface-variant">
-                  {currentPrompt.description}
-                </p>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                 {currentPrompt.suggestions.map((suggestion) => (
                   <button
                     key={suggestion}

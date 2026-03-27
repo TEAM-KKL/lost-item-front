@@ -1,9 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   type CSSProperties,
+  type ChangeEvent,
   type FormEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,7 +16,7 @@ import {
   type ChatMessage,
   SearchChatPanel,
 } from "@/components/home/search-chat-panel";
-import { SearchIcon } from "@/components/ui/icons";
+import { PlusIcon, SearchIcon } from "@/components/ui/icons";
 
 type SearchBoxProps = {
   defaultQuery: string;
@@ -35,6 +38,11 @@ type SearchStage =
   | "clarifying"
   | "ready"
   | "navigating";
+
+type AttachedImage = {
+  name: string;
+  previewUrl: string;
+};
 
 const FIRST_BUBBLE_TARGET_Y_OFFSET = -6;
 
@@ -111,9 +119,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const searchRowRef = useRef<HTMLDivElement>(null);
   const statusRowRef = useRef<HTMLDivElement>(null);
   const firstUserBubbleRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const morphTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const morphStartRectRef = useRef<DOMRect | null>(null);
   const [query, setQuery] = useState(defaultQuery);
+  const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [missingFields, setMissingFields] = useState<ClarifyField[]>([]);
@@ -147,6 +157,14 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       navigating: "검색 결과를 준비 중이에요",
     }[searchStage] || "";
 
+  useEffect(() => {
+    return () => {
+      if (attachedImage) {
+        URL.revokeObjectURL(attachedImage.previewUrl);
+      }
+    };
+  }, [attachedImage]);
+
   function navigateToSearch(nextQuery: string) {
     setSearchStage("navigating");
     startTransition(() => {
@@ -168,6 +186,35 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setIsMorphingFirstBubble(false);
     setMorphBubble(null);
     morphStartRectRef.current = null;
+  }
+
+  function handleSelectImage(event: ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0];
+
+    if (!nextFile) {
+      return;
+    }
+
+    if (attachedImage) {
+      URL.revokeObjectURL(attachedImage.previewUrl);
+    }
+
+    setAttachedImage({
+      name: nextFile.name,
+      previewUrl: URL.createObjectURL(nextFile),
+    });
+  }
+
+  function handleRemoveImage() {
+    if (attachedImage) {
+      URL.revokeObjectURL(attachedImage.previewUrl);
+    }
+
+    setAttachedImage(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   function playFirstBubbleMorph(initialQuery: string) {
@@ -350,23 +397,68 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           }`}
         >
           <form onSubmit={handleSubmitSearch}>
-            <div ref={searchRowRef} className="flex items-center gap-3 px-4">
-              <SearchIcon className="h-5 w-5 text-outline" />
-              <input
-                type="text"
-                name="q"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="예: 검은 가죽 지갑, 홍대입구"
-                className="w-full bg-transparent py-5 text-lg text-on-surface outline-none placeholder:text-outline-variant"
-              />
-              <button
-                type="submit"
-                disabled={isPending}
-                className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
-              >
-                {isPending ? "검색 중..." : "검색"}
-              </button>
+            <div className="px-4 py-3">
+              <div ref={searchRowRef} className="flex items-center gap-3">
+                <SearchIcon className="h-5 w-5 text-outline" />
+                <input
+                  type="text"
+                  name="q"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="예: 검은 가죽 지갑, 홍대입구"
+                  className="w-full bg-transparent py-2 text-lg text-on-surface outline-none placeholder:text-outline-variant"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleSelectImage}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/12 bg-primary/5 text-primary transition-all hover:-translate-y-0.5 hover:bg-primary/10 active:scale-95"
+                  aria-label="이미지 첨부"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+                >
+                  {isPending ? "검색 중..." : "검색"}
+                </button>
+              </div>
+
+              {attachedImage ? (
+                <div className="mt-3 flex items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2.5">
+                  <Image
+                    src={attachedImage.previewUrl}
+                    alt={attachedImage.name}
+                    width={48}
+                    height={48}
+                    unoptimized
+                    className="h-12 w-12 rounded-xl object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-on-surface">
+                      이미지가 첨부되었어요
+                    </p>
+                    <p className="truncate text-xs text-on-surface-variant">
+                      {attachedImage.name}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="rounded-full border border-primary/12 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5"
+                  >
+                    제거
+                  </button>
+                </div>
+              ) : null}
             </div>
           </form>
         </div>

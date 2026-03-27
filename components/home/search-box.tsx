@@ -438,29 +438,27 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
               {attachedImage ? (
                 <div className="mt-3 flex items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2.5">
-                  <Image
-                    src={attachedImage.previewUrl}
-                    alt={attachedImage.name}
-                    width={48}
-                    height={48}
-                    unoptimized
-                    className="h-12 w-12 rounded-xl object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-on-surface">
-                      이미지가 첨부되었어요
-                    </p>
-                    <p className="truncate text-xs text-on-surface-variant">
-                      {attachedImage.name}
-                    </p>
+                  <div className="relative h-14 w-14 shrink-0">
+                    <Image
+                      src={attachedImage.previewUrl}
+                      alt={attachedImage.name}
+                      width={56}
+                      height={56}
+                      unoptimized
+                      className="h-14 w-14 rounded-xl object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute -right-1.5 -top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary shadow-[0_8px_16px_rgba(0,35,111,0.18)] transition-transform hover:scale-105 active:scale-95"
+                      aria-label="첨부 이미지 제거"
+                    >
+                      ×
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="rounded-full border border-primary/12 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5"
-                  >
-                    제거
-                  </button>
+                  <p className="truncate text-sm font-semibold text-on-surface">
+                    {attachedImage.name}
+                  </p>
                 </div>
               ) : null}
             </div>

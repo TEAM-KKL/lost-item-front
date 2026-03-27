@@ -437,7 +437,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
               </div>
 
               {attachedImage ? (
-                <div className="mt-3 flex items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2.5">
+                <div className="mt-3 flex rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2.5">
                   <div className="relative h-14 w-14 shrink-0">
                     <Image
                       src={attachedImage.previewUrl}
@@ -456,9 +456,6 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                       ×
                     </button>
                   </div>
-                  <p className="truncate text-sm font-semibold text-on-surface">
-                    {attachedImage.name}
-                  </p>
                 </div>
               ) : null}
             </div>

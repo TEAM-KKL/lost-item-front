@@ -1,0 +1,201 @@
+import { ChevronDownIcon, SparklesIcon } from "@/components/ui/icons";
+
+export type ChatMessage = {
+  id: string;
+  role: "assistant" | "user";
+  text: string;
+};
+
+type SearchChatPanelProps = {
+  isOpen: boolean;
+  messages: ChatMessage[];
+  draftAnswer: string;
+  currentPrompt?: {
+    title: string;
+    description: string;
+    suggestions: string[];
+  };
+  summaryQuery?: string;
+  isNavigating: boolean;
+  onDraftAnswerChange: (value: string) => void;
+  onSubmitAnswer: () => void;
+  onSuggestionSelect: (value: string) => void;
+  onSearchNow: () => void;
+  onClose: () => void;
+};
+
+export function SearchChatPanel({
+  isOpen,
+  messages,
+  draftAnswer,
+  currentPrompt,
+  summaryQuery,
+  isNavigating,
+  onDraftAnswerChange,
+  onSubmitAnswer,
+  onSuggestionSelect,
+  onSearchNow,
+  onClose,
+}: SearchChatPanelProps) {
+  return (
+    <div
+      className={`overflow-hidden transition-all duration-500 ease-out ${
+        isOpen
+          ? "mt-6 max-h-[52rem] opacity-100"
+          : "pointer-events-none max-h-0 opacity-0"
+      }`}
+      aria-hidden={!isOpen}
+    >
+      <div className="rounded-[1.5rem] border border-primary/10 bg-[linear-gradient(180deg,rgba(220,225,255,0.45)_0%,rgba(255,255,255,0.98)_14%,rgba(255,255,255,1)_100%)] p-3 shadow-[0_24px_60px_rgba(0,35,111,0.12)] ring-1 ring-white/70">
+        <div className="rounded-[1.2rem] border border-white/80 bg-surface-container-lowest p-4 md:p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary shadow-[0_16px_24px_rgba(0,35,111,0.18)]">
+                <SparklesIcon className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <p className="font-headline text-lg font-extrabold tracking-tight text-primary">
+                  AI가 검색어를 다듬고 있어요
+                </p>
+                <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+                  정보가 부족할 때만 몇 가지만 짧게 확인한 뒤 바로 검색으로 넘깁니다.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1 rounded-full bg-surface-container-low px-3 py-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+            >
+              접기
+              <ChevronDownIcon className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="no-scrollbar mt-5 flex max-h-[28rem] flex-col gap-3 overflow-y-auto pr-1">
+            {messages.map((message, index) => {
+              const isAssistant = message.role === "assistant";
+
+              return (
+                <div
+                  key={message.id}
+                  className={`animate-rise-in flex ${
+                    isAssistant ? "justify-start" : "justify-end"
+                  }`}
+                  style={{ animationDelay: `${index * 80}ms` }}
+                >
+                  <div
+                    className={`max-w-[88%] rounded-[1.25rem] px-4 py-3 text-left shadow-[0_10px_24px_rgba(25,28,30,0.06)] ${
+                      isAssistant
+                        ? "rounded-bl-sm bg-surface-container-low text-on-surface"
+                        : "rounded-br-sm bg-primary text-on-primary"
+                    }`}
+                  >
+                    <span
+                      className={`mb-1 block text-[11px] font-bold uppercase tracking-[0.16em] ${
+                        isAssistant ? "text-primary/70" : "text-white/70"
+                      }`}
+                    >
+                      {isAssistant ? "AI" : "You"}
+                    </span>
+                    <p className="text-sm leading-6">{message.text}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-5 rounded-[1.25rem] border border-primary/10 bg-primary-fixed/20 p-4">
+            {currentPrompt ? (
+              <>
+                <div className="text-left">
+                  <p className="font-headline text-lg font-extrabold tracking-tight text-primary">
+                    {currentPrompt.title}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+                    {currentPrompt.description}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {currentPrompt.suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => onSuggestionSelect(suggestion)}
+                      className="rounded-full border border-primary/15 bg-white/90 px-3 py-2 text-sm font-semibold text-primary transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+
+                <form
+                  className="mt-4 flex flex-col gap-3 md:flex-row"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    onSubmitAnswer();
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={draftAnswer}
+                    onChange={(event) => onDraftAnswerChange(event.target.value)}
+                    placeholder="짧게 답해도 됩니다"
+                    className="h-12 flex-1 rounded-xl border border-primary/10 bg-white px-4 text-sm text-on-surface outline-none transition-shadow placeholder:text-outline-variant focus:shadow-[0_0_0_4px_rgba(64,89,170,0.12)]"
+                  />
+                  <button
+                    type="submit"
+                    className="h-12 rounded-xl bg-primary px-6 text-sm font-extrabold text-on-primary transition-transform active:scale-95"
+                  >
+                    답변 보내기
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="text-left">
+                <p className="font-headline text-lg font-extrabold tracking-tight text-primary">
+                  검색할 정보가 충분해졌어요
+                </p>
+                <p className="mt-1 text-sm leading-6 text-on-surface-variant">
+                  아래처럼 정리해서 바로 검색 결과로 넘길 수 있습니다.
+                </p>
+                <div className="mt-4 rounded-2xl border border-primary/10 bg-white px-4 py-3 shadow-[0_10px_24px_rgba(25,28,30,0.04)]">
+                  <p className="text-sm font-semibold text-on-surface">
+                    {summaryQuery}
+                  </p>
+                </div>
+                <div className="mt-4 flex flex-col gap-3 md:flex-row">
+                  <button
+                    type="button"
+                    onClick={onSearchNow}
+                    disabled={isNavigating}
+                    className="rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {isNavigating ? "검색 중..." : "이 정보로 검색하기"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-xl border border-primary/15 bg-white px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                  >
+                    조금 더 수정할게요
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center gap-2 text-left text-xs font-medium text-primary/75">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+            이 단계는 검색 품질을 높이기 위한 짧은 보완 질문입니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

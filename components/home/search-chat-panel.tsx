@@ -22,7 +22,6 @@ type SearchChatPanelProps = {
   hideFirstUserBubble?: boolean;
   onDraftAnswerChange: (value: string) => void;
   onSubmitAnswer: () => void;
-  onSuggestionSelect: (value: string) => void;
   onSearchNow: () => void;
   onClose: () => void;
 };
@@ -38,7 +37,6 @@ export function SearchChatPanel({
   hideFirstUserBubble = false,
   onDraftAnswerChange,
   onSubmitAnswer,
-  onSuggestionSelect,
   onSearchNow,
   onClose,
 }: SearchChatPanelProps) {
@@ -58,9 +56,6 @@ export function SearchChatPanel({
             <div className="text-left">
               <p className="font-headline text-lg font-extrabold tracking-tight text-primary">
                 AI가 검색어를 다듬고 있어요
-              </p>
-              <p className="mt-1 text-sm leading-6 text-on-surface-variant">
-                정보가 부족할 때만 몇 가지만 짧게 확인한 뒤 바로 검색으로 넘깁니다.
               </p>
             </div>
           </div>
@@ -119,42 +114,27 @@ export function SearchChatPanel({
 
         <div className="mt-5 rounded-[1.25rem] border border-primary/10 bg-primary-fixed/30 p-4 backdrop-blur-sm">
           {currentPrompt ? (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {currentPrompt.suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    onClick={() => onSuggestionSelect(suggestion)}
-                    className="rounded-full border border-primary/15 bg-white/90 px-3 py-2 text-sm font-semibold text-primary transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-
-              <form
-                className="mt-4 flex flex-col gap-3 md:flex-row"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  onSubmitAnswer();
-                }}
+            <form
+              className="flex flex-col gap-3 md:flex-row"
+              onSubmit={(event) => {
+                event.preventDefault();
+                onSubmitAnswer();
+              }}
+            >
+              <input
+                type="text"
+                value={draftAnswer}
+                onChange={(event) => onDraftAnswerChange(event.target.value)}
+                placeholder="짧게 답해도 됩니다"
+                className="h-12 flex-1 rounded-xl border border-primary/10 bg-white px-4 text-sm text-on-surface outline-none transition-shadow placeholder:text-outline-variant focus:shadow-[0_0_0_4px_rgba(64,89,170,0.12)]"
+              />
+              <button
+                type="submit"
+                className="h-12 rounded-xl bg-primary px-6 text-sm font-extrabold text-on-primary transition-transform active:scale-95"
               >
-                <input
-                  type="text"
-                  value={draftAnswer}
-                  onChange={(event) => onDraftAnswerChange(event.target.value)}
-                  placeholder="짧게 답해도 됩니다"
-                  className="h-12 flex-1 rounded-xl border border-primary/10 bg-white px-4 text-sm text-on-surface outline-none transition-shadow placeholder:text-outline-variant focus:shadow-[0_0_0_4px_rgba(64,89,170,0.12)]"
-                />
-                <button
-                  type="submit"
-                  className="h-12 rounded-xl bg-primary px-6 text-sm font-extrabold text-on-primary transition-transform active:scale-95"
-                >
-                  답변 보내기
-                </button>
-              </form>
-            </>
+                답변 보내기
+              </button>
+            </form>
           ) : (
             <div className="text-left">
               <p className="font-headline text-lg font-extrabold tracking-tight text-primary">
@@ -187,14 +167,6 @@ export function SearchChatPanel({
               </div>
             </div>
           )}
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 text-left text-xs font-medium text-primary/75">
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-          </span>
-          이 단계는 검색 품질을 높이기 위한 짧은 보완 질문입니다.
         </div>
       </div>
     </div>

@@ -36,6 +36,8 @@ type SearchStage =
   | "ready"
   | "navigating";
 
+const FIRST_BUBBLE_TARGET_Y_OFFSET = -6;
+
 const promptByField: Record<ClarifyField, PromptConfig> = {
   item: {
     title: "어떤 물건인지 먼저 알려주세요",
@@ -107,6 +109,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRowRef = useRef<HTMLDivElement>(null);
+  const statusRowRef = useRef<HTMLDivElement>(null);
   const firstUserBubbleRef = useRef<HTMLDivElement>(null);
   const morphTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const morphStartRectRef = useRef<DOMRect | null>(null);
@@ -132,14 +135,15 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     () => buildSearchQuery(query, answers),
     [answers, query],
   );
-  const isStatusVisible = searchStage !== "idle" || isChatOpen;
+  const isStatusVisible =
+    searchStage !== "idle" && searchStage !== "ready";
   const stageCopy =
     {
       idle: "",
       analyzing: "입력 내용을 분석 중이에요",
       matching: "분실물 데이터와 맞춰 보고 있어요",
       clarifying: "추가로 필요한 질문을 정리하고 있어요",
-      ready: "몇 가지만 더 확인하고 바로 결과로 넘길게요",
+      ready: "",
       navigating: "검색 결과를 준비 중이에요",
     }[searchStage] || "";
 
@@ -170,6 +174,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     const containerRect = containerRef.current?.getBoundingClientRect();
     const startRect = morphStartRectRef.current;
     const targetRect = firstUserBubbleRef.current?.getBoundingClientRect();
+    const searchRowHeight =
+      searchRowRef.current?.getBoundingClientRect().height ?? 0;
+    const statusRowHeight =
+      statusRowRef.current?.getBoundingClientRect().height ?? 0;
 
     if (!containerRect || !startRect || !targetRect) {
       setIsMorphingFirstBubble(false);
@@ -194,7 +202,12 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
         setMorphBubble({
           text: initialQuery,
           style: {
-            top: targetRect.top - containerRect.top,
+            top:
+              targetRect.top -
+              containerRect.top +
+              FIRST_BUBBLE_TARGET_Y_OFFSET -
+              searchRowHeight -
+              statusRowHeight,
             left: targetRect.left - containerRect.left,
             width: targetRect.width,
             height: targetRect.height,
@@ -363,7 +376,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
             isStatusVisible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="flex items-center gap-2 px-4 pb-4 text-sm font-semibold text-primary/80">
+          <div
+            ref={statusRowRef}
+            className="flex items-center gap-2 px-4 pb-4 text-sm font-semibold text-primary/80"
+          >
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
@@ -383,7 +399,6 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           hideFirstUserBubble={isMorphingFirstBubble}
           onDraftAnswerChange={setDraftAnswer}
           onSubmitAnswer={() => handleSubmitAnswer()}
-          onSuggestionSelect={handleSubmitAnswer}
           onSearchNow={() => navigateToSearch(summaryQuery)}
           onClose={() => {
             resetChat();

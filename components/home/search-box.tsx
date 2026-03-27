@@ -40,6 +40,7 @@ type SearchStage =
   | "navigating";
 
 type AttachedImage = {
+  id: string;
   name: string;
   previewUrl: string;
 };
@@ -120,10 +121,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const statusRowRef = useRef<HTMLDivElement>(null);
   const firstUserBubbleRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachedImagesRef = useRef<AttachedImage[]>([]);
   const morphTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const morphStartRectRef = useRef<DOMRect | null>(null);
   const [query, setQuery] = useState(defaultQuery);
-  const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
+  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [missingFields, setMissingFields] = useState<ClarifyField[]>([]);
@@ -158,12 +160,16 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     }[searchStage] || "";
 
   useEffect(() => {
+    attachedImagesRef.current = attachedImages;
+  }, [attachedImages]);
+
+  useEffect(() => {
     return () => {
-      if (attachedImage) {
-        URL.revokeObjectURL(attachedImage.previewUrl);
-      }
+      attachedImagesRef.current.forEach((image) => {
+        URL.revokeObjectURL(image.previewUrl);
+      });
     };
-  }, [attachedImage]);
+  }, []);
 
   function navigateToSearch(nextQuery: string) {
     setSearchStage("navigating");
@@ -189,28 +195,35 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   }
 
   function handleSelectImage(event: ChangeEvent<HTMLInputElement>) {
-    const nextFile = event.target.files?.[0];
+    const nextFiles = Array.from(event.target.files ?? []);
 
-    if (!nextFile) {
+    if (nextFiles.length === 0) {
       return;
     }
 
-    if (attachedImage) {
-      URL.revokeObjectURL(attachedImage.previewUrl);
-    }
+    const nextImages = nextFiles.map((file) => ({
+      id: `${file.name}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      name: file.name,
+      previewUrl: URL.createObjectURL(file),
+    }));
 
-    setAttachedImage({
-      name: nextFile.name,
-      previewUrl: URL.createObjectURL(nextFile),
-    });
+    setAttachedImages((current) => [...current, ...nextImages]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
-  function handleRemoveImage() {
-    if (attachedImage) {
-      URL.revokeObjectURL(attachedImage.previewUrl);
-    }
+  function handleRemoveImage(imageId: string) {
+    setAttachedImages((current) => {
+      const imageToRemove = current.find((image) => image.id === imageId);
 
-    setAttachedImage(null);
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.previewUrl);
+      }
+
+      return current.filter((image) => image.id !== imageId);
+    });
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -395,7 +408,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           className={`overflow-hidden transition-all duration-500 ease-out ${
             isChatOpen
               ? "max-h-0 opacity-0"
-              : attachedImage
+              : attachedImages.length > 0
                 ? "max-h-56 opacity-100"
                 : "max-h-28 opacity-100"
           }`}
@@ -416,6 +429,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleSelectImage}
                   className="hidden"
                 />
@@ -436,25 +450,29 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                 </button>
               </div>
 
-              {attachedImage ? (
-                <div className="mt-3 flex rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2.5">
-                  <div className="relative h-14 w-14 shrink-0">
-                    <Image
-                      src={attachedImage.previewUrl}
-                      alt={attachedImage.name}
-                      width={56}
-                      height={56}
-                      unoptimized
-                      className="h-14 w-14 rounded-xl object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute -right-1.5 -top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary shadow-[0_8px_16px_rgba(0,35,111,0.18)] transition-transform hover:scale-105 active:scale-95"
-                      aria-label="첨부 이미지 제거"
-                    >
-                      ×
-                    </button>
+              {attachedImages.length > 0 ? (
+                <div className="no-scrollbar mt-3 overflow-x-auto">
+                  <div className="flex min-w-max gap-3 rounded-2xl border border-primary/10 bg-primary/5 px-3 py-2.5">
+                    {attachedImages.map((image) => (
+                      <div key={image.id} className="relative h-14 w-14 shrink-0">
+                        <Image
+                          src={image.previewUrl}
+                          alt={image.name}
+                          width={56}
+                          height={56}
+                          unoptimized
+                          className="h-14 w-14 rounded-xl object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(image.id)}
+                          className="absolute -right-1.5 -top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary shadow-[0_8px_16px_rgba(0,35,111,0.18)] transition-transform hover:scale-105 active:scale-95"
+                          aria-label="첨부 이미지 제거"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : null}

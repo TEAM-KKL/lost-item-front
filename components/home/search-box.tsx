@@ -393,7 +393,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       >
         <div
           className={`overflow-hidden transition-all duration-500 ease-out ${
-            isChatOpen ? "max-h-0 opacity-0" : "max-h-28 opacity-100"
+            isChatOpen
+              ? "max-h-0 opacity-0"
+              : attachedImage
+                ? "max-h-56 opacity-100"
+                : "max-h-28 opacity-100"
           }`}
         >
           <form onSubmit={handleSubmitSearch}>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState, useTransition } from "react";
+import { type FormEvent, useMemo, useRef, useState, useTransition } from "react";
 import {
   type ChatMessage,
   SearchChatPanel,
@@ -21,6 +21,14 @@ type PromptConfig = {
   suggestions: string[];
   question: string;
 };
+
+type SearchStage =
+  | "idle"
+  | "analyzing"
+  | "matching"
+  | "clarifying"
+  | "ready"
+  | "navigating";
 
 const promptByField: Record<ClarifyField, PromptConfig> = {
   item: {
@@ -83,6 +91,12 @@ function buildSearchQuery(
     .join(", ");
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const router = useRouter();
   const [query, setQuery] = useState(defaultQuery);
@@ -94,6 +108,8 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [searchStage, setSearchStage] = useState<SearchStage>("idle");
+  const searchRunIdRef = useRef(0);
 
   const currentPrompt = missingFields[0] ? promptByField[missingFields[0]] : null;
   const summaryQuery = useMemo(
@@ -101,18 +117,31 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     [answers, query],
   );
   const trackHref = `/search?q=${encodeURIComponent(summaryQuery)}#track-search`;
+  const isStatusVisible = searchStage !== "idle" || isChatOpen;
+  const stageCopy =
+    {
+      idle: "",
+      analyzing: "입력 내용을 분석 중이에요",
+      matching: "분실물 데이터와 맞춰 보고 있어요",
+      clarifying: "추가로 필요한 질문을 정리하고 있어요",
+      ready: "몇 가지만 더 확인하고 바로 결과로 넘길게요",
+      navigating: "검색 결과를 준비 중이에요",
+    }[searchStage] || "";
 
   function navigateToSearch(nextQuery: string) {
+    setSearchStage("navigating");
     startTransition(() => {
       router.push(`/search?q=${encodeURIComponent(nextQuery)}`);
     });
   }
 
   function resetChat() {
+    searchRunIdRef.current += 1;
     setDraftAnswer("");
     setAnswers({});
     setMessages([]);
     setMissingFields([]);
+    setSearchStage("idle");
   }
 
   function openClarifyFlow(
@@ -125,13 +154,14 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setDraftAnswer("");
     setAnswers({});
     setMissingFields(nextMissingFields);
+    setSearchStage("ready");
     setMessages([
       createMessage("user", initialQuery),
       createMessage("assistant", firstPrompt.question),
     ]);
   }
 
-  function handleSubmitSearch(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const nextQuery = query.trim();
@@ -139,15 +169,39 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       return;
     }
 
+    const currentRunId = searchRunIdRef.current + 1;
+    searchRunIdRef.current = currentRunId;
+    setSearchStage("analyzing");
+
+    await wait(320);
+    if (searchRunIdRef.current !== currentRunId) {
+      return;
+    }
+
     const assessment = assessQuery(nextQuery);
+    setSearchStage("matching");
+
+    await wait(420);
+    if (searchRunIdRef.current !== currentRunId) {
+      return;
+    }
 
     if (assessment.missingFields.length === 0) {
-      resetChat();
       setIsChatOpen(false);
+      setSearchStage("navigating");
+      await wait(280);
+      if (searchRunIdRef.current !== currentRunId) {
+        return;
+      }
       navigateToSearch(nextQuery);
       return;
     }
 
+    setSearchStage("clarifying");
+    await wait(320);
+    if (searchRunIdRef.current !== currentRunId) {
+      return;
+    }
     openClarifyFlow(assessment.missingFields, nextQuery);
   }
 
@@ -227,26 +281,30 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           </form>
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-4 pb-4 text-sm font-semibold text-primary/80">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-            </span>
-            {isChatOpen
-              ? "몇 가지만 더 확인하고 바로 결과로 넘길게요"
-              : "지금도 계속 찾고 있습니다"}
+        <div
+          className={`overflow-hidden transition-all duration-500 ease-out ${
+            isStatusVisible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3 px-4 pb-4 text-sm font-semibold text-primary/80">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              {stageCopy}
+            </div>
+            <Link
+              href={trackHref}
+              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${
+                isChatOpen
+                  ? "border-primary/10 bg-white/80 text-primary hover:bg-white"
+                  : "border-primary/10 bg-primary/5 text-primary hover:bg-primary/10"
+              }`}
+            >
+              계속 찾아줘
+            </Link>
           </div>
-          <Link
-            href={trackHref}
-            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${
-              isChatOpen
-                ? "border-primary/10 bg-white/80 text-primary hover:bg-white"
-                : "border-primary/10 bg-primary/5 text-primary hover:bg-primary/10"
-            }`}
-          >
-            계속 찾아줘
-          </Link>
         </div>
 
         <SearchChatPanel

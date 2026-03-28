@@ -151,6 +151,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [searchStage, setSearchStage] = useState<SearchStage>("idle");
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const searchRunIdRef = useRef(0);
   const [isMorphingFirstBubble, setIsMorphingFirstBubble] = useState(false);
   const [morphBubble, setMorphBubble] = useState<{
@@ -228,6 +229,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setMissingFields([]);
     setSearchSessionId((current) => current ?? createSearchSessionId());
     setSearchStage("idle");
+    setSubmitError(null);
     setIsMorphingFirstBubble(false);
     setMorphBubble(null);
     morphStartRectRef.current = null;
@@ -397,6 +399,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
     const currentRunId = searchRunIdRef.current + 1;
     searchRunIdRef.current = currentRunId;
+    setSubmitError(null);
     setSearchStage("analyzing");
 
     if (hasAttachedImage) {
@@ -404,6 +407,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       setSearchStage("navigating");
       const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
       if (searchRunIdRef.current !== currentRunId) {
+        return;
+      }
+      if (!agentResponse?.cacheKey) {
+        setSearchStage("idle");
+        setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
       navigateToSearch(
@@ -425,6 +433,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       }
       const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
       if (searchRunIdRef.current !== currentRunId) {
+        return;
+      }
+      if (!agentResponse?.cacheKey) {
+        setSearchStage("idle");
+        setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
       navigateToSearch(
@@ -625,6 +638,13 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                 summaryQuery,
                 searchSessionId,
               );
+              if (!agentResponse?.cacheKey) {
+                setSearchStage("ready");
+                setSubmitError(
+                  "검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.",
+                );
+                return;
+              }
               navigateToSearch(
                 summaryQuery,
                 agentResponse?.sessionId ?? searchSessionId,
@@ -654,6 +674,9 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           </div>
         ) : null}
       </div>
+      {submitError ? (
+        <p className="mt-3 px-2 text-sm font-medium text-error">{submitError}</p>
+      ) : null}
     </div>
   );
 }

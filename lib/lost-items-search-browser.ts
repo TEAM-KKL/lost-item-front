@@ -23,7 +23,11 @@ export async function searchLostItemsDirect(
   const sessionId = input.sessionId?.trim() || undefined;
   const image = input.image ?? null;
 
-  if (!apiBaseUrl || (!query && !image)) {
+  if (!apiBaseUrl) {
+    throw new Error("NEXT_PUBLIC_LOST_ITEMS_API_BASE_URL is not configured");
+  }
+
+  if (!query && !image) {
     return {
       items: [],
       total: 0,

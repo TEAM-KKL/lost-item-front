@@ -1,9 +1,4 @@
-import {
-  DEFAULT_TOP_K,
-  mapSearchApiResponse,
-  type LostItemsSearchResult,
-  type SearchApiResponse,
-} from "@/lib/lost-items-search-shared";
+import type { LostItemsSearchResult } from "@/lib/lost-items-search-shared";
 
 type BrowserSearchInput = {
   query?: string;
@@ -11,21 +6,16 @@ type BrowserSearchInput = {
   image?: File | null;
 };
 
-function getApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_LOST_ITEMS_API_BASE_URL?.replace(/\/$/, "");
-}
+export type BrowserSearchResponse = LostItemsSearchResult & {
+  token?: string;
+};
 
 export async function searchLostItemsDirect(
   input: BrowserSearchInput,
-): Promise<LostItemsSearchResult> {
-  const apiBaseUrl = getApiBaseUrl();
+): Promise<BrowserSearchResponse> {
   const query = input.query?.trim();
   const sessionId = input.sessionId?.trim() || undefined;
   const image = input.image ?? null;
-
-  if (!apiBaseUrl) {
-    throw new Error("NEXT_PUBLIC_LOST_ITEMS_API_BASE_URL is not configured");
-  }
 
   if (!query && !image) {
     return {
@@ -35,49 +25,28 @@ export async function searchLostItemsDirect(
     };
   }
 
-  const endpoint = image
-    ? query
-      ? "/api/v1/search/combined"
-      : "/api/v1/search/image"
-    : "/api/v1/search/text";
+  const formData = new FormData();
 
-  const response = image
-    ? await fetch(`${apiBaseUrl}${endpoint}`, {
-        method: "POST",
-        body: (() => {
-          const formData = new FormData();
-          formData.set("file", image);
-          formData.set("top_k", String(DEFAULT_TOP_K));
-          formData.set("use_agent", "true");
+  if (query) {
+    formData.set("query", query);
+  }
 
-          if (query) {
-            formData.set("query", query);
-          }
+  if (sessionId) {
+    formData.set("sessionId", sessionId);
+  }
 
-          if (sessionId) {
-            formData.set("session_id", sessionId);
-          }
+  if (image) {
+    formData.set("file", image);
+  }
 
-          return formData;
-        })(),
-      })
-    : await fetch(`${apiBaseUrl}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query,
-          top_k: DEFAULT_TOP_K,
-          use_agent: true,
-          session_id: sessionId ?? null,
-        }),
-      });
+  const response = await fetch("/api/search/submit", {
+    method: "POST",
+    body: formData,
+  });
 
   if (!response.ok) {
     throw new Error(`Search request failed with status ${response.status}`);
   }
 
-  const data = (await response.json()) as SearchApiResponse;
-  return mapSearchApiResponse(data, apiBaseUrl);
+  return (await response.json()) as BrowserSearchResponse;
 }

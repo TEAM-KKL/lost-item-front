@@ -7,7 +7,10 @@ import { SearchSessionSync } from "@/components/search/search-session-sync";
 import { SearchStatusBanner } from "@/components/search/search-status-banner";
 import { searchLostItemsDirect } from "@/lib/lost-items-search-browser";
 import type { LostItemsSearchResult } from "@/lib/lost-items-search-shared";
-import { getSearchResultFromSession } from "@/lib/search-result-session-cache";
+import {
+  getSearchResultFromSession,
+  saveSearchResultToSession,
+} from "@/lib/search-result-session-cache";
 
 type SearchPageClientProps = {
   query: string;
@@ -41,6 +44,15 @@ export function SearchPageClient({
         return;
       }
 
+      if (
+        initialResults.items.length > 0 ||
+        initialResults.total > 0 ||
+        initialResults.assistantMessage
+      ) {
+        saveSearchResultToSession(cacheKey, initialResults);
+        return;
+      }
+
       if (!query) {
         return;
       }
@@ -54,6 +66,8 @@ export function SearchPageClient({
         if (!isCancelled) {
           setResults(nextResults);
         }
+
+        saveSearchResultToSession(cacheKey, nextResults);
       } catch {
         if (!isCancelled) {
           setResults({
@@ -70,7 +84,7 @@ export function SearchPageClient({
     return () => {
       isCancelled = true;
     };
-  }, [cacheKey, query, sessionId]);
+  }, [cacheKey, initialResults, query, sessionId]);
 
   return (
     <div className="pb-20 pt-10">

@@ -54,6 +54,7 @@ type AttachedImage = {
 };
 
 type SearchAgentResponse = {
+  token?: string;
   cacheKey?: string;
   sessionId?: string | null;
   assistantMessage?: string | null;
@@ -279,8 +280,15 @@ export function SearchBox({
 
   function navigateToSearch(
     nextQuery: string,
-    sessionId?: string | null,
-    cacheKey?: string,
+    {
+      sessionId,
+      cacheKey,
+      token,
+    }: {
+      sessionId?: string | null;
+      cacheKey?: string;
+      token?: string;
+    },
   ) {
     updateSearchStage("navigating");
     startTransition(() => {
@@ -290,6 +298,10 @@ export function SearchBox({
 
       if (sessionId) {
         params.set("sid", sessionId);
+      }
+
+      if (token) {
+        params.set("token", token);
       }
 
       if (cacheKey) {
@@ -335,6 +347,7 @@ export function SearchBox({
       saveSearchResultToSession(cacheKey, result);
 
       return {
+        token: result.token,
         cacheKey,
         sessionId: result.sessionId,
         assistantMessage: result.assistantMessage,
@@ -499,8 +512,11 @@ export function SearchBox({
       }
       navigateToSearch(
         nextQuery,
-        agentResponse?.sessionId ?? searchSessionId,
-        agentResponse?.cacheKey,
+        {
+          sessionId: agentResponse?.sessionId ?? searchSessionId,
+          cacheKey: agentResponse?.cacheKey,
+          token: agentResponse?.token,
+        },
       );
       return;
     }
@@ -525,8 +541,11 @@ export function SearchBox({
       }
       navigateToSearch(
         nextQuery,
-        agentResponse?.sessionId ?? searchSessionId,
-        agentResponse?.cacheKey,
+        {
+          sessionId: agentResponse?.sessionId ?? searchSessionId,
+          cacheKey: agentResponse?.cacheKey,
+          token: agentResponse?.token,
+        },
       );
       return;
     }
@@ -734,8 +753,11 @@ export function SearchBox({
               }
               navigateToSearch(
                 summaryQuery,
-                agentResponse?.sessionId ?? searchSessionId,
-                agentResponse?.cacheKey,
+                {
+                  sessionId: agentResponse?.sessionId ?? searchSessionId,
+                  cacheKey: agentResponse?.cacheKey,
+                  token: agentResponse?.token,
+                },
               );
             })();
           }}

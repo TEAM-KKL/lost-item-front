@@ -5,6 +5,7 @@ import { SearchSessionSync } from "@/components/search/search-session-sync";
 import { SearchStatusBanner } from "@/components/search/search-status-banner";
 import { SearchToolbar } from "@/components/search/search-toolbar";
 import { searchLostItemsByText } from "@/lib/lost-items-search";
+import { getSearchResult } from "@/lib/search-result-cache";
 
 export const metadata: Metadata = {
   title: "FoundIt | 검색 결과",
@@ -15,19 +16,30 @@ type SearchPageProps = {
   searchParams: Promise<{
     q?: string;
     sid?: string;
+    token?: string;
   }>;
 };
 
 function getKeyword(query: string) {
-  return query.split(",")[0]?.trim() || query;
+  return query.split(",")[0]?.trim() || query || "첨부 이미지";
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
-  const query = params.q?.trim() || "검은 가죽 지갑, 홍대입구";
+  const token = params.token?.trim();
+  const query = params.q?.trim() || (token ? "" : "검은 가죽 지갑, 홍대입구");
   const sessionId = params.sid?.trim() || undefined;
   const keyword = getKeyword(query);
-  const results = await searchLostItemsByText(query, sessionId);
+  const cachedResults = token ? getSearchResult(token) : null;
+  const results =
+    cachedResults ||
+    (query
+      ? await searchLostItemsByText(query, sessionId)
+      : {
+          items: [],
+          total: 0,
+          usedFallback: false,
+        });
 
   return (
     <div className="pb-20 pt-10">

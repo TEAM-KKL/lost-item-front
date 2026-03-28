@@ -41,11 +41,13 @@ type SearchStage =
 
 type AttachedImage = {
   id: string;
+  file: File;
   name: string;
   previewUrl: string;
 };
 
 type SearchAgentResponse = {
+  token?: string;
   sessionId?: string | null;
   assistantMessage?: string | null;
 };
@@ -176,7 +178,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     };
   }, []);
 
-  function navigateToSearch(nextQuery: string, sessionId?: string | null) {
+  function navigateToSearch(
+    nextQuery: string,
+    sessionId?: string | null,
+    token?: string,
+  ) {
     setSearchStage("navigating");
     startTransition(() => {
       const params = new URLSearchParams({
@@ -185,6 +191,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
       if (sessionId) {
         params.set("sid", sessionId);
+      }
+
+      if (token) {
+        params.set("token", token);
       }
 
       router.push(`/search?${params.toString()}`);
@@ -213,15 +223,25 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     sessionId?: string | null,
   ): Promise<SearchAgentResponse | null> {
     try {
-      const response = await fetch("/api/search/text", {
+      const formData = new FormData();
+      const normalizedQuery = nextQuery.trim();
+      const latestImage = attachedImages[attachedImages.length - 1]?.file ?? null;
+
+      if (normalizedQuery) {
+        formData.set("query", normalizedQuery);
+      }
+
+      if (sessionId) {
+        formData.set("sessionId", sessionId);
+      }
+
+      if (latestImage) {
+        formData.set("file", latestImage);
+      }
+
+      const response = await fetch("/api/search/submit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: nextQuery,
-          sessionId,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -244,6 +264,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
     const nextImages = nextFiles.map((file) => ({
       id: `${file.name}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      file,
       name: file.name,
       previewUrl: URL.createObjectURL(file),
     }));
@@ -362,7 +383,9 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     event.preventDefault();
 
     const nextQuery = query.trim();
-    if (!nextQuery) {
+    const hasAttachedImage = attachedImages.length > 0;
+
+    if (!nextQuery && !hasAttachedImage) {
       return;
     }
 
@@ -372,6 +395,17 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
     await wait(320);
     if (searchRunIdRef.current !== currentRunId) {
+      return;
+    }
+
+    if (hasAttachedImage) {
+      setIsChatOpen(false);
+      setSearchStage("navigating");
+      const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
+      if (searchRunIdRef.current !== currentRunId) {
+        return;
+      }
+      navigateToSearch(nextQuery, agentResponse?.sessionId, agentResponse?.token);
       return;
     }
 
@@ -578,7 +612,19 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           onSubmitAnswer={() => {
             void handleSubmitAnswer();
           }}
-          onSearchNow={() => navigateToSearch(summaryQuery, searchSessionId)}
+          onSearchNow={() => {
+            void (async () => {
+              const agentResponse = await requestAgentResponse(
+                summaryQuery,
+                searchSessionId,
+              );
+              navigateToSearch(
+                summaryQuery,
+                agentResponse?.sessionId ?? searchSessionId,
+                agentResponse?.token,
+              );
+            })();
+          }}
           onClose={() => {
             resetChat();
             setIsChatOpen(false);

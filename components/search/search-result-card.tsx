@@ -59,8 +59,7 @@ export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
         </p>
         {item.pickupPlace ? (
           <p className="mt-2 text-sm text-slate-500">
-            <span className="font-semibold text-on-surface-variant">습득장소</span>{" "}
-            {item.pickupPlace}
+            습득장소 · {item.pickupPlace}
           </p>
         ) : null}
         <button

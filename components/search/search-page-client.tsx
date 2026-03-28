@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { SearchResultsGrid } from "@/components/search/search-results-grid";
 import { SearchSessionSync } from "@/components/search/search-session-sync";
+import { SearchStatusBanner } from "@/components/search/search-status-banner";
 import { SearchToolbar } from "@/components/search/search-toolbar";
 import { searchLostItemsDirect } from "@/lib/lost-items-search-browser";
 import type { LostItemsSearchResult } from "@/lib/lost-items-search-shared";
@@ -74,6 +75,7 @@ export function SearchPageClient({
   return (
     <div className="pb-20 pt-10">
       <SearchSessionSync sessionId={results.sessionId ?? sessionId} />
+      <SearchStatusBanner assistantMessage={results.assistantMessage} />
       <SearchToolbar query={query} sessionId={results.sessionId ?? sessionId} />
       <SearchResultsGrid items={results.items} />
     </div>

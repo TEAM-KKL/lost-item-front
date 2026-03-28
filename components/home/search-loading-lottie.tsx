@@ -20,6 +20,7 @@ export function SearchLoadingLottie({ visible }: SearchLoadingLottieProps) {
       <div className="mt-8 flex flex-col items-center justify-center">
         <dotlottie-player
           src="/loading.lottie"
+          animation-id="Main Scene"
           autoplay
           loop
           mode="normal"

@@ -8,6 +8,7 @@ declare module "react" {
         HTMLElement
       > & {
         src?: string;
+        "animation-id"?: string;
         autoplay?: boolean;
         loop?: boolean;
         mode?: string;

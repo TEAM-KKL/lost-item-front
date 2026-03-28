@@ -21,38 +21,29 @@ export type RecentItem = {
   location: string;
   imageUrl?: string;
   badgeLabel: string;
-  highlightBadge: boolean;
 };
 
 function getApiBaseUrl() {
   return process.env.LOST_ITEMS_API_BASE_URL?.replace(/\/$/, "");
 }
 
-function getTodayInSeoul() {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Seoul",
-  }).format(new Date());
-}
-
 function buildBadge(dateString: string) {
-  const isToday = dateString === getTodayInSeoul();
+  const [year, month, day] = dateString.split("-");
 
-  return {
-    badgeLabel: isToday ? "오늘 등록" : "최근 등록",
-    highlightBadge: isToday,
-  };
+  if (!year || !month || !day) {
+    return dateString || "날짜 미정";
+  }
+
+  return `${year}.${month}.${day}`;
 }
 
 function mapRecentItem(item: LostItemApiResult, apiBaseUrl: string): RecentItem {
-  const badge = buildBadge(item.fd_ymd);
-
   return {
     id: item.atc_id,
     name: item.fd_prdt_nm || item.fd_sbjt || "이름 없는 분실물",
     location: item.dep_place || item.pkup_plc_se_nm || item.prdt_cl_nm || "보관 장소 확인 필요",
     imageUrl: buildPublicImageUrl(item.image_url, apiBaseUrl),
-    badgeLabel: badge.badgeLabel,
-    highlightBadge: badge.highlightBadge,
+    badgeLabel: buildBadge(item.fd_ymd),
   };
 }
 

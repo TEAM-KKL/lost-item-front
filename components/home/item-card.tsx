@@ -25,11 +25,7 @@ export function ItemCard({ item }: ItemCardProps) {
         )}
         <div className="absolute left-2.5 top-2.5">
           <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-[0.04em] ${
-              item.highlightBadge
-                ? "bg-secondary text-on-secondary"
-                : "bg-surface-container-highest text-on-surface"
-            }`}
+            className="inline-flex items-center rounded-full bg-surface-container-highest px-2 py-0.5 text-[10px] font-extrabold tracking-[0.04em] text-on-surface"
           >
             {item.badgeLabel}
           </span>

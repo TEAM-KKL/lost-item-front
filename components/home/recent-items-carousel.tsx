@@ -28,7 +28,7 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
     startX: 0,
     scrollLeft: 0,
   });
-  const doubledItems = [...items, ...items];
+  const tripledItems = [...items, ...items, ...items];
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -36,6 +36,9 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
     if (!scroller || items.length === 0) {
       return;
     }
+
+    const setWidth = scroller.scrollWidth / 3;
+    scroller.scrollLeft = setWidth;
 
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -62,12 +65,7 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
         timestamp >= pauseUntilRef.current
       ) {
         currentScroller.scrollLeft += elapsed * AUTO_SCROLL_PIXELS_PER_MS;
-
-        const loopWidth = currentScroller.scrollWidth / 2;
-
-        if (currentScroller.scrollLeft >= loopWidth) {
-          currentScroller.scrollLeft -= loopWidth;
-        }
+        wrapScrollPosition(currentScroller);
       }
 
       frameId = window.requestAnimationFrame(step);
@@ -79,6 +77,16 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
       window.cancelAnimationFrame(frameId);
     };
   }, [items]);
+
+  function wrapScrollPosition(scroller: HTMLDivElement) {
+    const setWidth = scroller.scrollWidth / 3;
+
+    if (scroller.scrollLeft <= setWidth * 0.5) {
+      scroller.scrollLeft += setWidth;
+    } else if (scroller.scrollLeft >= setWidth * 1.5) {
+      scroller.scrollLeft -= setWidth;
+    }
+  }
 
   function pauseAutoScroll() {
     pauseUntilRef.current = performance.now() + INTERACTION_PAUSE_MS;
@@ -125,6 +133,7 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
 
     const deltaX = event.clientX - dragStateRef.current.startX;
     scroller.scrollLeft = dragStateRef.current.scrollLeft - deltaX;
+    wrapScrollPosition(scroller);
   }
 
   function stopDragging(event?: ReactPointerEvent<HTMLDivElement>) {
@@ -176,13 +185,16 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
         onMouseLeave={() => {
           isHoveringRef.current = false;
         }}
+        onScroll={(event) => {
+          wrapScrollPosition(event.currentTarget);
+        }}
         onPointerLeave={(event) => {
           if (isDragging) {
             stopDragging(event);
           }
         }}
       >
-        {doubledItems.map((item, index) => (
+        {tripledItems.map((item, index) => (
           <ItemCard key={`${item.id}-${index}`} item={item} />
         ))}
       </div>

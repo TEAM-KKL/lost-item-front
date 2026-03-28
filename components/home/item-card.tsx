@@ -8,7 +8,7 @@ type ItemCardProps = {
 
 export function ItemCard({ item }: ItemCardProps) {
   return (
-    <article className="flex h-full w-[16.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-surface-container-lowest transition-all hover:-translate-y-1 hover:shadow-[0_24px_40px_rgba(0,35,111,0.12)] sm:w-[17.5rem]">
+    <article className="flex h-full w-[13.75rem] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-surface-container-lowest transition-all hover:-translate-y-1 hover:shadow-[0_24px_40px_rgba(0,35,111,0.12)] sm:w-[14.5rem]">
       <div className="relative aspect-[1/1] bg-primary-fixed">
         {item.imageUrl ? (
           <Image
@@ -36,16 +36,16 @@ export function ItemCard({ item }: ItemCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="line-clamp-2 font-headline text-base font-extrabold text-primary">
+      <div className="flex flex-1 flex-col p-3.5">
+        <h3 className="line-clamp-2 font-headline text-[15px] font-extrabold leading-snug text-primary">
           {item.name}
         </h3>
-        <p className="mt-1 line-clamp-2 text-sm text-on-surface-variant">
+        <p className="mt-1 line-clamp-2 text-[13px] text-on-surface-variant">
           {item.location}
         </p>
         <button
           type="button"
-          className="mt-4 w-full rounded-lg border border-primary py-2.5 text-sm font-extrabold text-primary transition-colors hover:bg-primary hover:text-on-primary"
+          className="mt-3.5 w-full rounded-lg border border-primary py-2 text-[13px] font-extrabold text-primary transition-colors hover:bg-primary hover:text-on-primary"
         >
           이거 내 거 같아요
         </button>

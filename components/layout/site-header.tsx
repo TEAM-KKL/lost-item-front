@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function SiteHeader() {
@@ -6,9 +7,16 @@ export function SiteHeader() {
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
         <Link
           href="/"
-          className="font-headline text-2xl font-extrabold tracking-[-0.06em] text-primary transition-opacity hover:opacity-80"
+          className="transition-opacity hover:opacity-80"
         >
-          FoundIt
+          <Image
+            src="/logo.svg"
+            alt="FoundIt"
+            width={140}
+            height={38}
+            priority
+            className="h-10 w-auto"
+          />
         </Link>
         {/* Login button removed */}
       </div>

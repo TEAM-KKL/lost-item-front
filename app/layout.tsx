@@ -17,6 +17,11 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   title: "FoundIt | 잃어버린 물건을 끝까지 찾는 서비스",
   description: "설명만 하면 분실물을 계속 추적하고 알려주는 FoundIt 랜딩 페이지입니다.",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

@@ -14,7 +14,7 @@ type RecentItemsCarouselProps = {
   items: RecentItem[];
 };
 
-const SCROLL_AMOUNT = 168;
+const SCROLL_AMOUNT = 220;
 const AUTO_SCROLL_PIXELS_PER_MS = 0.035;
 const INTERACTION_PAUSE_MS = 2200;
 
@@ -162,7 +162,7 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
 
       <div
         ref={scrollerRef}
-        className={`no-scrollbar flex gap-2.5 overflow-x-auto overflow-y-visible px-1 pt-2 pb-6 ${
+        className={`no-scrollbar flex gap-3 overflow-x-auto overflow-y-visible px-1 pt-2 pb-6 ${
           isDragging ? "cursor-grabbing select-none" : "cursor-grab"
         }`}
         style={{ touchAction: "pan-y" }}

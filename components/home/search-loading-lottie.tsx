@@ -16,7 +16,7 @@ export function SearchLoadingLottie({ visible }: SearchLoadingLottieProps) {
       <div
         className={`overflow-hidden transition-all duration-500 ease-out ${
           visible
-            ? "mb-2 max-h-[18rem] opacity-100"
+            ? "mb-1 max-h-[16rem] opacity-100"
             : "mb-0 max-h-0 opacity-0"
         }`}
       >
@@ -31,7 +31,7 @@ export function SearchLoadingLottie({ visible }: SearchLoadingLottieProps) {
             loop
             background="transparent"
             speed="1"
-            style={{ width: "260px", maxWidth: "100%", height: "260px" }}
+            style={{ width: "220px", maxWidth: "100%", height: "220px" }}
           />
         </div>
       </div>

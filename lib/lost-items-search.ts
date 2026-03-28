@@ -187,10 +187,10 @@ export async function searchLostItems(
             const formData = new FormData();
             formData.set("file", image);
             formData.set("top_k", String(DEFAULT_TOP_K));
+            formData.set("use_agent", "true");
 
             if (query) {
               formData.set("query", query);
-              formData.set("use_agent", "true");
             }
 
             if (sessionId) {

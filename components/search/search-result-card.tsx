@@ -12,14 +12,14 @@ export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
   const detailUrl = `https://minwon24.police.go.kr/cvlcpt/selectFindListDetail.do?&cvlcptId=MW-201&pkupCmdtyMngId=${encodeURIComponent(String(item.id))}&sortSn=1`;
 
   return (
-    <article className="group overflow-hidden rounded-xl bg-surface-container-low transition-shadow duration-300 hover:shadow-xl">
+    <article className="group rounded-xl transition-shadow duration-300 hover:shadow-xl">
       <a
         href={detailUrl}
         target="_blank"
         rel="noreferrer"
         className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       >
-        <div className="relative aspect-[4/3]">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem]">
           {item.imageUrl ? (
             <Image
               src={item.imageUrl}

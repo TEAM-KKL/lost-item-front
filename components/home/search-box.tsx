@@ -671,52 +671,20 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
         <div
           className={`overflow-hidden transition-all duration-500 ease-out ${
-            isStatusVisible ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
+            isStatusVisible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <div
             ref={statusRowRef}
             className="px-4 pb-4"
           >
-            <div className="rounded-[1.1rem] border border-primary/10 bg-primary-fixed/28 px-4 py-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
-                </span>
-                {progressSteps[Math.min(activeProgressIndex, progressSteps.length - 1)]
-                  ?.label ?? ""}
-              </div>
-              <div className="mt-3 space-y-2">
-                {progressSteps.map((step, index) => {
-                  const isCompleted = index < activeProgressIndex;
-                  const isCurrent = index === activeProgressIndex;
-
-                  return (
-                    <div
-                      key={step.id}
-                      className={`flex items-center gap-2 text-sm transition-colors ${
-                        isCurrent
-                          ? "font-semibold text-on-surface"
-                          : isCompleted
-                            ? "text-primary/80"
-                            : "text-on-surface-variant/65"
-                      }`}
-                    >
-                      <span
-                        className={`inline-flex h-2.5 w-2.5 rounded-full ${
-                          isCurrent
-                            ? "bg-primary shadow-[0_0_0_4px_rgba(64,89,170,0.14)]"
-                            : isCompleted
-                              ? "bg-primary/70"
-                              : "bg-outline-variant"
-                        }`}
-                      />
-                      {step.label}
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="flex items-center gap-2 rounded-[1.1rem] border border-primary/10 bg-primary-fixed/28 px-4 py-3 text-sm font-semibold text-primary">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+              </span>
+              {progressSteps[Math.min(activeProgressIndex, progressSteps.length - 1)]
+                ?.label ?? ""}
             </div>
           </div>
         </div>

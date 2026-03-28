@@ -8,7 +8,7 @@ type ItemCardProps = {
 
 export function ItemCard({ item }: ItemCardProps) {
   return (
-    <article className="flex h-[16.4rem] w-[9.6rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.25rem] bg-surface-container-lowest transition-all hover:-translate-y-1 hover:shadow-[0_18px_30px_rgba(0,35,111,0.12)] sm:h-[17.2rem] sm:w-[10.4rem]">
+    <article className="flex min-h-[17.8rem] w-[9.6rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.25rem] bg-surface-container-lowest transition-all hover:-translate-y-1 hover:shadow-[0_18px_30px_rgba(0,35,111,0.12)] sm:min-h-[18.8rem] sm:w-[10.4rem]">
       <div className="relative aspect-[1/1] bg-primary-fixed">
         {item.imageUrl ? (
           <Image
@@ -36,7 +36,7 @@ export function ItemCard({ item }: ItemCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-3">
+      <div className="flex flex-1 flex-col p-3 pb-3.5">
         <h3 className="min-h-[2.4rem] line-clamp-2 font-headline text-[12px] font-extrabold leading-snug text-primary">
           {item.name}
         </h3>

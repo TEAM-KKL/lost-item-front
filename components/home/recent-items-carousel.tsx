@@ -162,7 +162,7 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
 
       <div
         ref={scrollerRef}
-        className={`no-scrollbar flex gap-3 overflow-x-auto overflow-y-visible px-1 pt-2 pb-6 ${
+        className={`no-scrollbar flex gap-3 overflow-x-auto overflow-y-visible px-1 pt-2 pb-10 ${
           isDragging ? "cursor-grabbing select-none" : "cursor-grab"
         }`}
         style={{ touchAction: "pan-y" }}

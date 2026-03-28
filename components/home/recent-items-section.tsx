@@ -5,7 +5,7 @@ export async function RecentItemsSection() {
   const recentItems = await getRecentItems(30);
 
   return (
-    <section className="bg-surface-container-low px-6 py-20">
+    <section className="bg-surface-container-low px-6 py-24">
       <div className="mx-auto max-w-7xl">
         <div className="flex items-end justify-between gap-4">
           <div>

@@ -79,26 +79,14 @@ const promptByField: Record<ClarifyField, PromptConfig> = {
 
 const itemPattern =
   /(지갑|카드지갑|반지갑|장지갑|가방|백팩|열쇠|에어팟|이어폰|휴대폰|핸드폰|아이패드|노트북|우산|가디건|학생증|신분증)/;
-const locationPattern =
-  /(역|출구|입구|동|로|길|거리|공원|카페|학교|정류장|터미널|버스|지하철|편의점|백화점|캠퍼스|한강|광장|건물)/;
-const detailPattern =
-  /(검|흰|하얀|블랙|화이트|실버|은색|가죽|천|브랜드|로고|케이스|프로|맥세이프|줄무늬|무광|유광|파랑|빨강|갈색|네이비)/;
 
 function assessQuery(query: string) {
   const normalized = query.trim();
   const hasItem = itemPattern.test(normalized);
-  const hasLocation = locationPattern.test(normalized);
-  const hasDetail = detailPattern.test(normalized);
 
   if (!hasItem) {
     return {
       missingFields: ["item"] as ClarifyField[],
-    };
-  }
-
-  if (!hasLocation && !hasDetail) {
-    return {
-      missingFields: ["detail"] as ClarifyField[],
     };
   }
 

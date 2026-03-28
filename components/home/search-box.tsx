@@ -16,6 +16,7 @@ import {
   type ChatMessage,
   SearchChatPanel,
 } from "@/components/home/search-chat-panel";
+import { SearchLoadingLottie } from "@/components/home/search-loading-lottie";
 import { searchLostItemsDirect } from "@/lib/lost-items-search-browser";
 import {
   createSearchResultCacheKey,
@@ -748,6 +749,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       {submitError ? (
         <p className="mt-3 px-2 text-sm font-medium text-error">{submitError}</p>
       ) : null}
+      <SearchLoadingLottie visible={isStatusVisible} />
     </div>
   );
 }

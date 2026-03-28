@@ -10,12 +10,7 @@ export function SiteHeader() {
         >
           FoundIt
         </Link>
-        <button
-          type="button"
-          className="border-b-2 border-primary pb-1 font-headline text-sm font-extrabold tracking-tight text-primary transition-transform duration-200 active:scale-95"
-        >
-          Login
-        </button>
+        {/* Login button removed */}
       </div>
     </header>
   );

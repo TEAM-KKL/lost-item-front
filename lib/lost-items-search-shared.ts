@@ -14,6 +14,7 @@ export type LostItemApiResult = {
   dep_place: string;
   fd_ymd: string;
   image_url?: string | null;
+  pkup_plc_se_nm?: string | null;
   score: number;
   matched_via: string;
 };

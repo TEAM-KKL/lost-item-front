@@ -30,6 +30,16 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
   });
   const tripledItems = [...items, ...items, ...items];
 
+  function wrapScrollPosition(scroller: HTMLDivElement) {
+    const setWidth = scroller.scrollWidth / 3;
+
+    if (scroller.scrollLeft <= setWidth * 0.5) {
+      scroller.scrollLeft += setWidth;
+    } else if (scroller.scrollLeft >= setWidth * 1.5) {
+      scroller.scrollLeft -= setWidth;
+    }
+  }
+
   useEffect(() => {
     const scroller = scrollerRef.current;
 
@@ -77,16 +87,6 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
       window.cancelAnimationFrame(frameId);
     };
   }, [items]);
-
-  function wrapScrollPosition(scroller: HTMLDivElement) {
-    const setWidth = scroller.scrollWidth / 3;
-
-    if (scroller.scrollLeft <= setWidth * 0.5) {
-      scroller.scrollLeft += setWidth;
-    } else if (scroller.scrollLeft >= setWidth * 1.5) {
-      scroller.scrollLeft -= setWidth;
-    }
-  }
 
   function pauseAutoScroll() {
     pauseUntilRef.current = performance.now() + INTERACTION_PAUSE_MS;

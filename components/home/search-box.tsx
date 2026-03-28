@@ -26,6 +26,7 @@ import { PlusIcon, SearchIcon } from "@/components/ui/icons";
 
 type SearchBoxProps = {
   defaultQuery: string;
+  defaultSessionId?: string | null;
 };
 
 type ClarifyField = "item" | "location" | "detail";
@@ -172,7 +173,10 @@ function createSearchSessionId() {
   return `search-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
-export function SearchBox({ defaultQuery }: SearchBoxProps) {
+export function SearchBox({
+  defaultQuery,
+  defaultSessionId,
+}: SearchBoxProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRowRef = useRef<HTMLDivElement>(null);
@@ -187,8 +191,8 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [missingFields, setMissingFields] = useState<ClarifyField[]>([]);
-  const [searchSessionId, setSearchSessionId] = useState<string | null>(() =>
-    createSearchSessionId(),
+  const [searchSessionId, setSearchSessionId] = useState<string | null>(
+    () => defaultSessionId ?? createSearchSessionId(),
   );
   const [answers, setAnswers] = useState<Partial<Record<ClarifyField, string>>>(
     {},
@@ -254,6 +258,16 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
   }, [attachedImages]);
+
+  useEffect(() => {
+    setQuery(defaultQuery);
+  }, [defaultQuery]);
+
+  useEffect(() => {
+    if (defaultSessionId) {
+      setSearchSessionId(defaultSessionId);
+    }
+  }, [defaultSessionId]);
 
   useEffect(() => {
     return () => {

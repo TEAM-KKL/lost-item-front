@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SearchBox } from "@/components/home/search-box";
 import { SearchResultsGrid } from "@/components/search/search-results-grid";
 import { SearchSessionSync } from "@/components/search/search-session-sync";
 import { SearchStatusBanner } from "@/components/search/search-status-banner";
-import { SearchToolbar } from "@/components/search/search-toolbar";
 import { searchLostItemsDirect } from "@/lib/lost-items-search-browser";
 import type { LostItemsSearchResult } from "@/lib/lost-items-search-shared";
 import { getSearchResultFromSession } from "@/lib/search-result-session-cache";
@@ -76,7 +76,12 @@ export function SearchPageClient({
     <div className="pb-20 pt-10">
       <SearchSessionSync sessionId={results.sessionId ?? sessionId} />
       <SearchStatusBanner assistantMessage={results.assistantMessage} />
-      <SearchToolbar query={query} sessionId={results.sessionId ?? sessionId} />
+      <section className="mx-auto mb-12 max-w-7xl px-8">
+        <SearchBox
+          defaultQuery={query}
+          defaultSessionId={results.sessionId ?? sessionId}
+        />
+      </section>
       <SearchResultsGrid items={results.items} />
     </div>
   );

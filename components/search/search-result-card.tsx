@@ -57,6 +57,12 @@ export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
           <LocationIcon className="h-4 w-4" />
           {item.location} · {item.discoveredAt}
         </p>
+        {item.pickupPlace ? (
+          <p className="mt-2 text-sm text-slate-500">
+            <span className="font-semibold text-on-surface-variant">습득장소</span>{" "}
+            {item.pickupPlace}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={onSelect}

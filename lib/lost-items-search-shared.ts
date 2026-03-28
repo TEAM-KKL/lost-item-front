@@ -135,6 +135,7 @@ export function mapSearchApiResponse(
       id: item.atc_id,
       title: item.fd_prdt_nm || item.fd_sbjt || "이름 없는 분실물",
       location: item.dep_place || item.prdt_cl_nm || "보관 장소 확인 필요",
+      pickupPlace: item.pkup_plc_se_nm || undefined,
       discoveredAt: formatDiscoveredAt(item.fd_ymd),
       matchLabel: formatMatchLabel(item.score, item.matched_via),
       confidence: mapConfidence(item.score),

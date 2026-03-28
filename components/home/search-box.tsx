@@ -587,6 +587,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
   return (
     <div ref={containerRef} className="relative mx-auto w-full max-w-3xl">
+      <SearchLoadingLottie visible={isStatusVisible} />
       <div
         className={`overflow-hidden rounded-[1.6rem] border border-outline-variant/30 transition-all duration-500 ease-out ${
           isChatOpen
@@ -749,7 +750,6 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       {submitError ? (
         <p className="mt-3 px-2 text-sm font-medium text-error">{submitError}</p>
       ) : null}
-      <SearchLoadingLottie visible={isStatusVisible} />
     </div>
   );
 }

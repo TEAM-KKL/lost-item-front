@@ -17,14 +17,14 @@ export function SearchLoadingLottie({ visible }: SearchLoadingLottieProps) {
         src="https://unpkg.com/@lottiefiles/lottie-player@2.0.12/dist/lottie-player.js"
         strategy="afterInteractive"
       />
-      <div className="mt-8 flex flex-col items-center justify-center">
+      <div className="pointer-events-none absolute left-1/2 top-0 z-10 flex -translate-x-1/2 -translate-y-[62%] flex-col items-center justify-center">
         <lottie-player
           src="/loading.json"
           autoplay
           loop
           background="transparent"
           speed="1"
-          style={{ width: "320px", maxWidth: "100%", height: "320px" }}
+          style={{ width: "260px", maxWidth: "100%", height: "260px" }}
         />
       </div>
     </>

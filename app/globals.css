@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url("https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/static/woff2/SUIT.css");
+@import "tailwindcss";
 
 :root {
   --background: #f7f9fb;

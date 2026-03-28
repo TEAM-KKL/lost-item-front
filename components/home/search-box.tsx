@@ -57,6 +57,11 @@ type SearchAgentResponse = {
   assistantMessage?: string | null;
 };
 
+type ProgressStep = {
+  id: string;
+  label: string;
+};
+
 const FIRST_BUBBLE_TARGET_Y_OFFSET = -6;
 
 const promptByField: Record<ClarifyField, PromptConfig> = {
@@ -86,6 +91,42 @@ const promptByField: Record<ClarifyField, PromptConfig> = {
 
 const itemPattern =
   /(지갑|카드지갑|반지갑|장지갑|가방|백팩|열쇠|에어팟|이어폰|휴대폰|핸드폰|아이패드|노트북|우산|가디건|학생증|신분증)/;
+
+const SEARCH_PROGRESS_STEPS: ProgressStep[] = [
+  { id: "input", label: "검색어와 첨부 이미지를 확인하고 있어요" },
+  { id: "session", label: "이전 검색 흐름과 세션을 확인하고 있어요" },
+  { id: "vector", label: "비슷한 분실물을 빠르게 찾고 있어요" },
+  { id: "rerank", label: "관련도가 높은 결과만 다시 고르고 있어요" },
+  { id: "save", label: "검색 결과와 대화 기록을 정리하고 있어요" },
+];
+
+const CLARIFY_PROGRESS_STEPS: ProgressStep[] = [
+  { id: "input", label: "검색어와 첨부 이미지를 확인하고 있어요" },
+  { id: "session", label: "이전 검색 흐름과 세션을 확인하고 있어요" },
+  { id: "vector", label: "비슷한 분실물을 먼저 살펴보고 있어요" },
+  { id: "clarify", label: "지금 더 물어봐야 할 내용을 정리하고 있어요" },
+];
+
+function getProgressSteps(stage: SearchStage) {
+  return stage === "clarifying"
+    ? CLARIFY_PROGRESS_STEPS
+    : SEARCH_PROGRESS_STEPS;
+}
+
+function getProgressStartIndex(stage: SearchStage) {
+  switch (stage) {
+    case "analyzing":
+      return 0;
+    case "matching":
+      return 2;
+    case "clarifying":
+      return 2;
+    case "navigating":
+      return 4;
+    default:
+      return 0;
+  }
+}
 
 function assessQuery(query: string) {
   const normalized = query.trim();
@@ -152,6 +193,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const [isPending, startTransition] = useTransition();
   const [searchStage, setSearchStage] = useState<SearchStage>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [activeProgressIndex, setActiveProgressIndex] = useState(0);
   const searchRunIdRef = useRef(0);
   const [isMorphingFirstBubble, setIsMorphingFirstBubble] = useState(false);
   const [morphBubble, setMorphBubble] = useState<{
@@ -164,6 +206,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     () => buildSearchQuery(query, answers),
     [answers, query],
   );
+  const progressSteps = useMemo(
+    () => getProgressSteps(searchStage),
+    [searchStage],
+  );
   const isSearchSubmitting =
     searchStage === "analyzing" ||
     searchStage === "matching" ||
@@ -172,15 +218,31 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     isPending;
   const isStatusVisible =
     searchStage !== "idle" && searchStage !== "ready";
-  const stageCopy =
-    {
-      idle: "",
-      analyzing: "입력 내용을 분석 중이에요",
-      matching: "분실물 데이터와 맞춰 보고 있어요",
-      clarifying: "추가로 필요한 질문을 정리하고 있어요",
-      ready: "",
-      navigating: "검색 결과를 준비 중이에요",
-    }[searchStage] || "";
+  const currentProgressIndex = Math.max(
+    activeProgressIndex,
+    getProgressStartIndex(searchStage),
+  );
+
+  function updateSearchStage(nextStage: SearchStage) {
+    setSearchStage(nextStage);
+    setActiveProgressIndex(getProgressStartIndex(nextStage));
+  }
+
+  useEffect(() => {
+    if (!isStatusVisible) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveProgressIndex((current) =>
+        current < progressSteps.length - 1 ? current + 1 : current,
+      );
+    }, 1100);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [isStatusVisible, progressSteps, searchStage]);
 
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
@@ -199,7 +261,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     sessionId?: string | null,
     cacheKey?: string,
   ) {
-    setSearchStage("navigating");
+    updateSearchStage("navigating");
     startTransition(() => {
       const params = new URLSearchParams({
         q: nextQuery,
@@ -228,7 +290,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setMessages([]);
     setMissingFields([]);
     setSearchSessionId((current) => current ?? createSearchSessionId());
-    setSearchStage("idle");
+    updateSearchStage("idle");
     setSubmitError(null);
     setIsMorphingFirstBubble(false);
     setMorphBubble(null);
@@ -369,7 +431,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setSearchSessionId(
       (current) => sessionId ?? current ?? createSearchSessionId(),
     );
-    setSearchStage("ready");
+    updateSearchStage("ready");
     setIsMorphingFirstBubble(true);
     morphStartRectRef.current = searchRowRef.current?.getBoundingClientRect() ?? null;
     setMessages([
@@ -400,17 +462,17 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     const currentRunId = searchRunIdRef.current + 1;
     searchRunIdRef.current = currentRunId;
     setSubmitError(null);
-    setSearchStage("analyzing");
+    updateSearchStage("analyzing");
 
     if (hasAttachedImage) {
       setIsChatOpen(false);
-      setSearchStage("navigating");
+      updateSearchStage("navigating");
       const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
       if (searchRunIdRef.current !== currentRunId) {
         return;
       }
       if (!agentResponse?.cacheKey) {
-        setSearchStage("idle");
+        updateSearchStage("idle");
         setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
@@ -423,11 +485,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     }
 
     const assessment = assessQuery(nextQuery);
-    setSearchStage("matching");
+    updateSearchStage("matching");
 
     if (assessment.missingFields.length === 0) {
       setIsChatOpen(false);
-      setSearchStage("navigating");
+      updateSearchStage("navigating");
       if (searchRunIdRef.current !== currentRunId) {
         return;
       }
@@ -436,7 +498,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
         return;
       }
       if (!agentResponse?.cacheKey) {
-        setSearchStage("idle");
+        updateSearchStage("idle");
         setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
         return;
       }
@@ -448,7 +510,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       return;
     }
 
-    setSearchStage("clarifying");
+    updateSearchStage("clarifying");
     if (searchRunIdRef.current !== currentRunId) {
       return;
     }
@@ -603,18 +665,53 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
         <div
           className={`overflow-hidden transition-all duration-500 ease-out ${
-            isStatusVisible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+            isStatusVisible ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <div
             ref={statusRowRef}
-            className="flex items-center gap-2 px-4 pb-4 text-sm font-semibold text-primary/80"
+            className="px-4 pb-4"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-            </span>
-            {stageCopy}
+            <div className="rounded-[1.1rem] border border-primary/10 bg-primary-fixed/28 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+                </span>
+                {progressSteps[Math.min(currentProgressIndex, progressSteps.length - 1)]
+                  ?.label ?? ""}
+              </div>
+              <div className="mt-3 space-y-2">
+                {progressSteps.map((step, index) => {
+                  const isCompleted = index < currentProgressIndex;
+                  const isCurrent = index === currentProgressIndex;
+
+                  return (
+                    <div
+                      key={step.id}
+                      className={`flex items-center gap-2 text-sm transition-colors ${
+                        isCurrent
+                          ? "font-semibold text-on-surface"
+                          : isCompleted
+                            ? "text-primary/80"
+                            : "text-on-surface-variant/65"
+                      }`}
+                    >
+                      <span
+                        className={`inline-flex h-2.5 w-2.5 rounded-full ${
+                          isCurrent
+                            ? "bg-primary shadow-[0_0_0_4px_rgba(64,89,170,0.14)]"
+                            : isCompleted
+                              ? "bg-primary/70"
+                              : "bg-outline-variant"
+                        }`}
+                      />
+                      {step.label}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -633,13 +730,13 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           }}
           onSearchNow={() => {
             void (async () => {
-              setSearchStage("navigating");
+              updateSearchStage("navigating");
               const agentResponse = await requestAgentResponse(
                 summaryQuery,
                 searchSessionId,
               );
               if (!agentResponse?.cacheKey) {
-                setSearchStage("ready");
+                updateSearchStage("ready");
                 setSubmitError(
                   "검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.",
                 );

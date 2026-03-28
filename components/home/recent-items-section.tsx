@@ -7,15 +7,10 @@ export async function RecentItemsSection() {
   return (
     <section className="bg-surface-container-low px-6 py-24">
       <div className="mx-auto max-w-7xl">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="font-headline text-3xl font-extrabold text-primary">
-              최근 등록된 분실물
-            </h2>
-            <p className="mt-2 text-sm text-on-surface-variant">
-              방금 들어온 분실물을 좌우로 넘겨서 확인해보세요.
-            </p>
-          </div>
+        <div className="flex justify-center">
+          <h2 className="text-center font-headline text-3xl font-extrabold text-primary">
+            최근 등록된 분실물
+          </h2>
         </div>
         {recentItems.length > 0 ? (
           <RecentItemsCarousel items={recentItems} />

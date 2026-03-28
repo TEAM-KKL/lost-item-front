@@ -3,7 +3,10 @@ import "server-only";
 import type { SearchResult } from "@/data/search-results";
 
 const DEFAULT_TOP_K = 9;
-const SUPPORTED_IMAGE_HOSTS = new Set(["lh3.googleusercontent.com"]);
+const SUPPORTED_IMAGE_HOSTS = new Set([
+  "lh3.googleusercontent.com",
+  "52.79.250.143",
+]);
 
 type LostItemApiResult = {
   atc_id: string;
@@ -64,6 +67,34 @@ function isSupportedImageUrl(imageUrl?: string | null) {
   }
 }
 
+function getImageFileName(imageUrl: string) {
+  const rawFileName = imageUrl.split(/[\\/]/).pop();
+
+  if (!rawFileName) {
+    return null;
+  }
+
+  return rawFileName.replace(/\.[^.]+$/, "");
+}
+
+function buildPublicImageUrl(imageUrl: string | null | undefined, apiBaseUrl: string) {
+  if (!imageUrl) {
+    return undefined;
+  }
+
+  if (isSupportedImageUrl(imageUrl)) {
+    return imageUrl;
+  }
+
+  const fileName = getImageFileName(imageUrl);
+
+  if (!fileName) {
+    return undefined;
+  }
+
+  return `${apiBaseUrl}/api/v1/images/${encodeURIComponent(fileName)}`;
+}
+
 function formatMatchLabel(score: number, matchedVia: string) {
   const normalizedScore = score <= 1 ? score * 100 : score;
   const roundedScore = Math.max(0, Math.min(99, Math.round(normalizedScore)));
@@ -97,7 +128,10 @@ function mapConfidence(score: number): SearchResult["confidence"] {
   return score >= 0.82 ? "high" : "medium";
 }
 
-function mapSearchResult(result: LostItemApiResult): SearchResult {
+function mapSearchResult(
+  result: LostItemApiResult,
+  apiBaseUrl: string,
+): SearchResult {
   return {
     id: result.atc_id,
     title: result.fd_prdt_nm || result.fd_sbjt || "이름 없는 분실물",
@@ -105,7 +139,7 @@ function mapSearchResult(result: LostItemApiResult): SearchResult {
     discoveredAt: formatDiscoveredAt(result.fd_ymd),
     matchLabel: formatMatchLabel(result.score, result.matched_via),
     confidence: mapConfidence(result.score),
-    imageUrl: isSupportedImageUrl(result.image_url) ? result.image_url! : undefined,
+    imageUrl: buildPublicImageUrl(result.image_url, apiBaseUrl),
   };
 }
 
@@ -143,7 +177,7 @@ export async function searchLostItemsByText(
     const data = (await response.json()) as SearchApiResponse;
 
     return {
-      items: data.items.map(mapSearchResult),
+      items: data.items.map((item) => mapSearchResult(item, apiBaseUrl)),
       total: data.total,
       sessionId: data.session_id,
       assistantMessage: data.assistant_message,

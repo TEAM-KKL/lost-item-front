@@ -65,7 +65,7 @@ export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
         <button
           type="button"
           onClick={onSelect}
-          className="mt-6 block w-full rounded-lg bg-[linear-gradient(135deg,#00236f_0%,#1e3a8a_100%)] py-3 text-center font-extrabold text-white transition-transform active:scale-95"
+          className="mt-6 block w-full cursor-pointer rounded-lg bg-[linear-gradient(135deg,#00236f_0%,#1e3a8a_100%)] py-3 text-center font-medium text-white transition-transform active:scale-95"
         >
           이거 내 거 같아요
         </button>

@@ -52,7 +52,7 @@ export function ItemCard({ item, onSelect }: ItemCardProps) {
         <button
           type="button"
           onClick={onSelect}
-          className="mt-auto w-full rounded-lg border border-primary py-2 text-[11px] font-extrabold text-primary transition-colors hover:bg-primary hover:text-on-primary"
+          className="mt-auto w-full cursor-pointer rounded-lg border border-primary py-2 text-[11px] font-medium text-primary transition-colors hover:bg-primary hover:text-on-primary"
         >
           이거 내 거 같아요
         </button>

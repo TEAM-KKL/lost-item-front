@@ -8,14 +8,14 @@ type ItemCardProps = {
 
 export function ItemCard({ item }: ItemCardProps) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-xl bg-surface-container-lowest transition-all hover:-translate-y-1 hover:shadow-[0_24px_40px_rgba(0,35,111,0.12)]">
-      <div className="relative aspect-[4/3] bg-primary-fixed">
+    <article className="flex h-full w-[16.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-surface-container-lowest transition-all hover:-translate-y-1 hover:shadow-[0_24px_40px_rgba(0,35,111,0.12)] sm:w-[17.5rem]">
+      <div className="relative aspect-[1/1] bg-primary-fixed">
         {item.imageUrl ? (
           <Image
             src={item.imageUrl}
             alt={item.name}
             fill
-            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw"
+            sizes="280px"
             className="object-cover"
           />
         ) : (
@@ -23,9 +23,9 @@ export function ItemCard({ item }: ItemCardProps) {
             <WalletIcon className="h-16 w-16" />
           </div>
         )}
-        <div className="absolute left-4 top-4">
+        <div className="absolute left-3 top-3">
           <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold tracking-[0.08em] ${
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-[0.08em] ${
               item.highlightBadge
                 ? "bg-secondary text-on-secondary"
                 : "bg-surface-container-highest text-on-surface"
@@ -36,14 +36,16 @@ export function ItemCard({ item }: ItemCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-6">
-        <h3 className="font-headline text-lg font-extrabold text-primary">
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="line-clamp-2 font-headline text-base font-extrabold text-primary">
           {item.name}
         </h3>
-        <p className="mt-1 text-sm text-on-surface-variant">{item.location}</p>
+        <p className="mt-1 line-clamp-2 text-sm text-on-surface-variant">
+          {item.location}
+        </p>
         <button
           type="button"
-          className="mt-6 w-full rounded-lg border border-primary py-3 text-sm font-extrabold text-primary transition-colors hover:bg-primary hover:text-on-primary"
+          className="mt-4 w-full rounded-lg border border-primary py-2.5 text-sm font-extrabold text-primary transition-colors hover:bg-primary hover:text-on-primary"
         >
           이거 내 거 같아요
         </button>

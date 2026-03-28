@@ -1,18 +1,7 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const manrope = Manrope({
-  variable: "--font-manrope",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "FoundIt | 잃어버린 물건을 끝까지 찾는 서비스",
@@ -30,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${inter.variable} ${manrope.variable}`}>
+    <html lang="ko">
       <body className="min-h-screen bg-background font-body text-on-background antialiased">
         <div className="flex min-h-screen flex-col">
           <SiteHeader />

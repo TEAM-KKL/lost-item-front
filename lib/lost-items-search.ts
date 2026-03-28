@@ -1,6 +1,6 @@
 import "server-only";
 
-import { searchResults, type SearchResult } from "@/data/search-results";
+import type { SearchResult } from "@/data/search-results";
 
 const DEFAULT_TOP_K = 9;
 const SUPPORTED_IMAGE_HOSTS = new Set(["lh3.googleusercontent.com"]);
@@ -109,32 +109,16 @@ function mapSearchResult(result: LostItemApiResult): SearchResult {
   };
 }
 
-function getFallbackResults(query: string) {
-  const normalizedQuery = query.trim().toLowerCase();
-
-  if (!normalizedQuery) {
-    return searchResults;
-  }
-
-  const matchedResults = searchResults.filter((item) =>
-    `${item.title} ${item.location}`.toLowerCase().includes(normalizedQuery),
-  );
-
-  return matchedResults.length > 0 ? matchedResults : searchResults;
-}
-
 export async function searchLostItemsByText(
   query: string,
 ): Promise<LostItemsSearchResult> {
   const apiBaseUrl = getApiBaseUrl();
 
   if (!apiBaseUrl) {
-    const fallbackItems = getFallbackResults(query);
-
     return {
-      items: fallbackItems,
-      total: fallbackItems.length,
-      usedFallback: true,
+      items: [],
+      total: 0,
+      usedFallback: false,
     };
   }
 
@@ -169,12 +153,10 @@ export async function searchLostItemsByText(
       usedFallback: false,
     };
   } catch {
-    const fallbackItems = getFallbackResults(query);
-
     return {
-      items: fallbackItems,
-      total: fallbackItems.length,
-      usedFallback: true,
+      items: [],
+      total: 0,
+      usedFallback: false,
     };
   }
 }

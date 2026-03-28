@@ -16,10 +16,17 @@ import {
   type ChatMessage,
   SearchChatPanel,
 } from "@/components/home/search-chat-panel";
+import { SearchLoadingLottie } from "@/components/home/search-loading-lottie";
+import { searchLostItemsDirect } from "@/lib/lost-items-search-browser";
+import {
+  createSearchResultCacheKey,
+  saveSearchResultToSession,
+} from "@/lib/search-result-session-cache";
 import { PlusIcon, SearchIcon } from "@/components/ui/icons";
 
 type SearchBoxProps = {
   defaultQuery: string;
+  defaultSessionId?: string | null;
 };
 
 type ClarifyField = "item" | "location" | "detail";
@@ -41,13 +48,25 @@ type SearchStage =
 
 type AttachedImage = {
   id: string;
+  file: File;
   name: string;
   previewUrl: string;
 };
 
 type SearchAgentResponse = {
+  cacheKey?: string;
   sessionId?: string | null;
   assistantMessage?: string | null;
+};
+
+type ProgressStep = {
+  id: string;
+  label: string;
+};
+
+type ProgressTimeline = {
+  steps: ProgressStep[];
+  checkpoints: number[];
 };
 
 const FIRST_BUBBLE_TARGET_Y_OFFSET = -6;
@@ -79,6 +98,40 @@ const promptByField: Record<ClarifyField, PromptConfig> = {
 
 const itemPattern =
   /(지갑|카드지갑|반지갑|장지갑|가방|백팩|열쇠|에어팟|이어폰|휴대폰|핸드폰|아이패드|노트북|우산|가디건|학생증|신분증)/;
+
+const SEARCH_PROGRESS_TIMELINE: ProgressTimeline = {
+  steps: [
+    { id: "session", label: "이전 검색 흐름과 세션을 정리하고 있어요" },
+    { id: "vector", label: "비슷한 분실물을 먼저 넓게 찾고 있어요" },
+    { id: "rerank", label: "관련도가 높은 결과만 다시 고르고 있어요" },
+    { id: "save", label: "검색 결과와 대화 기록을 정리하고 있어요" },
+  ],
+  checkpoints: [0, 1800, 4300, 6600],
+};
+
+const CLARIFY_PROGRESS_TIMELINE: ProgressTimeline = {
+  steps: [
+    { id: "session", label: "이전 검색 흐름과 세션을 정리하고 있어요" },
+    { id: "vector", label: "비슷한 분실물을 먼저 살펴보고 있어요" },
+    { id: "clarify", label: "지금 더 물어봐야 할 내용을 정리하고 있어요" },
+  ],
+  checkpoints: [0, 2400, 5600],
+};
+
+function getProgressTimeline(stage: SearchStage): ProgressTimeline {
+  if (stage === "clarifying") {
+    return CLARIFY_PROGRESS_TIMELINE;
+  }
+
+  if (stage === "navigating") {
+    return SEARCH_PROGRESS_TIMELINE;
+  }
+
+  return {
+    steps: [{ id: stage, label: "검색어와 첨부 정보를 확인하고 있어요" }],
+    checkpoints: [0],
+  };
+}
 
 function assessQuery(query: string) {
   const normalized = query.trim();
@@ -112,13 +165,18 @@ function buildSearchQuery(
     .join(", ");
 }
 
-function wait(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+function createSearchSessionId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `search-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 }
 
-export function SearchBox({ defaultQuery }: SearchBoxProps) {
+export function SearchBox({
+  defaultQuery,
+  defaultSessionId,
+}: SearchBoxProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRowRef = useRef<HTMLDivElement>(null);
@@ -133,13 +191,17 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [missingFields, setMissingFields] = useState<ClarifyField[]>([]);
-  const [searchSessionId, setSearchSessionId] = useState<string | null>(null);
+  const [searchSessionId, setSearchSessionId] = useState<string | null>(
+    () => defaultSessionId ?? createSearchSessionId(),
+  );
   const [answers, setAnswers] = useState<Partial<Record<ClarifyField, string>>>(
     {},
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [searchStage, setSearchStage] = useState<SearchStage>("idle");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [activeProgressIndex, setActiveProgressIndex] = useState(0);
   const searchRunIdRef = useRef(0);
   const [isMorphingFirstBubble, setIsMorphingFirstBubble] = useState(false);
   const [morphBubble, setMorphBubble] = useState<{
@@ -152,21 +214,60 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     () => buildSearchQuery(query, answers),
     [answers, query],
   );
+  const progressTimeline = useMemo(
+    () => getProgressTimeline(searchStage),
+    [searchStage],
+  );
+  const progressSteps = progressTimeline.steps;
+  const isSearchSubmitting =
+    searchStage === "analyzing" ||
+    searchStage === "matching" ||
+    searchStage === "clarifying" ||
+    searchStage === "navigating" ||
+    isPending;
   const isStatusVisible =
     searchStage !== "idle" && searchStage !== "ready";
-  const stageCopy =
-    {
-      idle: "",
-      analyzing: "입력 내용을 분석 중이에요",
-      matching: "분실물 데이터와 맞춰 보고 있어요",
-      clarifying: "추가로 필요한 질문을 정리하고 있어요",
-      ready: "",
-      navigating: "검색 결과를 준비 중이에요",
-    }[searchStage] || "";
+
+  function updateSearchStage(nextStage: SearchStage) {
+    setSearchStage(nextStage);
+    setActiveProgressIndex(0);
+  }
+
+  useEffect(() => {
+    if (!isStatusVisible) {
+      return;
+    }
+
+    if (progressTimeline.checkpoints.length <= 1) {
+      return;
+    }
+
+    const timers = progressTimeline.checkpoints
+      .slice(1)
+      .map((checkpoint, index) =>
+        window.setTimeout(() => {
+          setActiveProgressIndex(index + 1);
+        }, checkpoint),
+      );
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [isStatusVisible, progressTimeline]);
 
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
   }, [attachedImages]);
+
+  useEffect(() => {
+    setQuery(defaultQuery);
+  }, [defaultQuery]);
+
+  useEffect(() => {
+    if (defaultSessionId) {
+      setSearchSessionId(defaultSessionId);
+    }
+  }, [defaultSessionId]);
 
   useEffect(() => {
     return () => {
@@ -176,8 +277,12 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     };
   }, []);
 
-  function navigateToSearch(nextQuery: string, sessionId?: string | null) {
-    setSearchStage("navigating");
+  function navigateToSearch(
+    nextQuery: string,
+    sessionId?: string | null,
+    cacheKey?: string,
+  ) {
+    updateSearchStage("navigating");
     startTransition(() => {
       const params = new URLSearchParams({
         q: nextQuery,
@@ -185,6 +290,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
       if (sessionId) {
         params.set("sid", sessionId);
+      }
+
+      if (cacheKey) {
+        params.set("ck", cacheKey);
       }
 
       router.push(`/search?${params.toString()}`);
@@ -201,8 +310,9 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setAnswers({});
     setMessages([]);
     setMissingFields([]);
-    setSearchSessionId(null);
-    setSearchStage("idle");
+    setSearchSessionId((current) => current ?? createSearchSessionId());
+    updateSearchStage("idle");
+    setSubmitError(null);
     setIsMorphingFirstBubble(false);
     setMorphBubble(null);
     morphStartRectRef.current = null;
@@ -213,23 +323,22 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     sessionId?: string | null,
   ): Promise<SearchAgentResponse | null> {
     try {
-      const response = await fetch("/api/search/text", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query: nextQuery,
-          sessionId,
-        }),
+      const normalizedQuery = nextQuery.trim();
+      const latestImage = attachedImages[attachedImages.length - 1]?.file ?? null;
+      const result = await searchLostItemsDirect({
+        query: normalizedQuery,
+        sessionId: sessionId ?? undefined,
+        image: latestImage,
       });
 
-      if (!response.ok) {
-        return null;
-      }
+      const cacheKey = createSearchResultCacheKey();
+      saveSearchResultToSession(cacheKey, result);
 
-      const data = (await response.json()) as SearchAgentResponse;
-      return data;
+      return {
+        cacheKey,
+        sessionId: result.sessionId,
+        assistantMessage: result.assistantMessage,
+      };
     } catch {
       return null;
     }
@@ -244,6 +353,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
     const nextImages = nextFiles.map((file) => ({
       id: `${file.name}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      file,
       name: file.name,
       previewUrl: URL.createObjectURL(file),
     }));
@@ -339,8 +449,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setDraftAnswer("");
     setAnswers({});
     setMissingFields(nextMissingFields);
-    setSearchSessionId(sessionId ?? null);
-    setSearchStage("ready");
+    setSearchSessionId(
+      (current) => sessionId ?? current ?? createSearchSessionId(),
+    );
+    updateSearchStage("ready");
     setIsMorphingFirstBubble(true);
     morphStartRectRef.current = searchRowRef.current?.getBoundingClientRect() ?? null;
     setMessages([
@@ -362,45 +474,69 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     event.preventDefault();
 
     const nextQuery = query.trim();
-    if (!nextQuery) {
+    const hasAttachedImage = attachedImages.length > 0;
+
+    if (!nextQuery && !hasAttachedImage) {
       return;
     }
 
     const currentRunId = searchRunIdRef.current + 1;
     searchRunIdRef.current = currentRunId;
-    setSearchStage("analyzing");
+    setSubmitError(null);
+    updateSearchStage("analyzing");
 
-    await wait(320);
-    if (searchRunIdRef.current !== currentRunId) {
+    if (hasAttachedImage) {
+      setIsChatOpen(false);
+      updateSearchStage("navigating");
+      const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
+      if (searchRunIdRef.current !== currentRunId) {
+        return;
+      }
+      if (!agentResponse?.cacheKey) {
+        updateSearchStage("idle");
+        setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      navigateToSearch(
+        nextQuery,
+        agentResponse?.sessionId ?? searchSessionId,
+        agentResponse?.cacheKey,
+      );
       return;
     }
 
     const assessment = assessQuery(nextQuery);
-    setSearchStage("matching");
-
-    await wait(420);
-    if (searchRunIdRef.current !== currentRunId) {
-      return;
-    }
+    updateSearchStage("matching");
 
     if (assessment.missingFields.length === 0) {
       setIsChatOpen(false);
-      setSearchStage("navigating");
-      await wait(280);
+      updateSearchStage("navigating");
       if (searchRunIdRef.current !== currentRunId) {
         return;
       }
-      navigateToSearch(nextQuery);
+      const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
+      if (searchRunIdRef.current !== currentRunId) {
+        return;
+      }
+      if (!agentResponse?.cacheKey) {
+        updateSearchStage("idle");
+        setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      navigateToSearch(
+        nextQuery,
+        agentResponse?.sessionId ?? searchSessionId,
+        agentResponse?.cacheKey,
+      );
       return;
     }
 
-    setSearchStage("clarifying");
-    await wait(320);
+    updateSearchStage("clarifying");
     if (searchRunIdRef.current !== currentRunId) {
       return;
     }
 
-    const agentResponse = await requestAgentResponse(nextQuery);
+    const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
     if (searchRunIdRef.current !== currentRunId) {
       return;
     }
@@ -465,6 +601,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
 
   return (
     <div ref={containerRef} className="relative mx-auto w-full max-w-3xl">
+      <SearchLoadingLottie visible={isStatusVisible} />
       <div
         className={`overflow-hidden rounded-[1.6rem] border border-outline-variant/30 transition-all duration-500 ease-out ${
           isChatOpen
@@ -511,10 +648,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={isPending}
+                  disabled={isSearchSubmitting}
                   className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
                 >
-                  {isPending ? "검색 중..." : "검색"}
+                  {isSearchSubmitting ? "검색 중..." : "검색"}
                 </button>
               </div>
 
@@ -555,13 +692,16 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
         >
           <div
             ref={statusRowRef}
-            className="flex items-center gap-2 px-4 pb-4 text-sm font-semibold text-primary/80"
+            className="px-4 pb-4"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-            </span>
-            {stageCopy}
+            <div className="flex items-center gap-2 rounded-[1.1rem] border border-primary/10 bg-primary-fixed/28 px-4 py-3 text-sm font-semibold text-primary">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
+              </span>
+              {progressSteps[Math.min(activeProgressIndex, progressSteps.length - 1)]
+                ?.label ?? ""}
+            </div>
           </div>
         </div>
 
@@ -571,14 +711,34 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           draftAnswer={draftAnswer}
           currentPrompt={currentPrompt ?? undefined}
           summaryQuery={missingFields.length === 0 ? summaryQuery : undefined}
-          isNavigating={isPending}
+          isNavigating={searchStage === "navigating" || isPending}
           firstUserBubbleRef={firstUserBubbleRef}
           hideFirstUserBubble={isMorphingFirstBubble}
           onDraftAnswerChange={setDraftAnswer}
           onSubmitAnswer={() => {
             void handleSubmitAnswer();
           }}
-          onSearchNow={() => navigateToSearch(summaryQuery, searchSessionId)}
+          onSearchNow={() => {
+            void (async () => {
+              updateSearchStage("navigating");
+              const agentResponse = await requestAgentResponse(
+                summaryQuery,
+                searchSessionId,
+              );
+              if (!agentResponse?.cacheKey) {
+                updateSearchStage("ready");
+                setSubmitError(
+                  "검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.",
+                );
+                return;
+              }
+              navigateToSearch(
+                summaryQuery,
+                agentResponse?.sessionId ?? searchSessionId,
+                agentResponse?.cacheKey,
+              );
+            })();
+          }}
           onClose={() => {
             resetChat();
             setIsChatOpen(false);
@@ -601,6 +761,9 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           </div>
         ) : null}
       </div>
+      {submitError ? (
+        <p className="mt-3 px-2 text-sm font-medium text-error">{submitError}</p>
+      ) : null}
     </div>
   );
 }

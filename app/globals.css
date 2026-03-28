@@ -1,3 +1,4 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 @import "tailwindcss";
 
 :root {
@@ -100,14 +101,14 @@
   --color-surface-dim: var(--surface-dim);
   --color-on-secondary: var(--on-secondary);
   --color-on-error: var(--on-error);
-  --font-headline: var(--font-manrope);
-  --font-body: var(--font-inter);
+  --font-headline: "Pretendard";
+  --font-body: "Pretendard";
 }
 
 body {
   background: var(--background);
   color: var(--on-background);
-  font-family: var(--font-inter), sans-serif;
+  font-family: "Pretendard", sans-serif;
 }
 
 * {
@@ -123,7 +124,7 @@ html {
 }
 
 .font-headline {
-  font-family: var(--font-manrope), sans-serif;
+  font-family: "Pretendard", sans-serif;
 }
 
 .no-scrollbar::-webkit-scrollbar {

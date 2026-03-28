@@ -120,6 +120,14 @@ function wait(ms: number) {
   });
 }
 
+function createSearchSessionId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `search-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
 export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,7 +143,9 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [missingFields, setMissingFields] = useState<ClarifyField[]>([]);
-  const [searchSessionId, setSearchSessionId] = useState<string | null>(null);
+  const [searchSessionId, setSearchSessionId] = useState<string | null>(() =>
+    createSearchSessionId(),
+  );
   const [answers, setAnswers] = useState<Partial<Record<ClarifyField, string>>>(
     {},
   );
@@ -211,7 +221,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setAnswers({});
     setMessages([]);
     setMissingFields([]);
-    setSearchSessionId(null);
+    setSearchSessionId((current) => current ?? createSearchSessionId());
     setSearchStage("idle");
     setIsMorphingFirstBubble(false);
     setMorphBubble(null);
@@ -360,7 +370,9 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setDraftAnswer("");
     setAnswers({});
     setMissingFields(nextMissingFields);
-    setSearchSessionId(sessionId ?? null);
+    setSearchSessionId(
+      (current) => sessionId ?? current ?? createSearchSessionId(),
+    );
     setSearchStage("ready");
     setIsMorphingFirstBubble(true);
     morphStartRectRef.current = searchRowRef.current?.getBoundingClientRect() ?? null;
@@ -405,7 +417,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       if (searchRunIdRef.current !== currentRunId) {
         return;
       }
-      navigateToSearch(nextQuery, agentResponse?.sessionId, agentResponse?.token);
+      navigateToSearch(
+        nextQuery,
+        agentResponse?.sessionId ?? searchSessionId,
+        agentResponse?.token,
+      );
       return;
     }
 
@@ -424,7 +440,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       if (searchRunIdRef.current !== currentRunId) {
         return;
       }
-      navigateToSearch(nextQuery);
+      navigateToSearch(nextQuery, searchSessionId);
       return;
     }
 
@@ -434,7 +450,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       return;
     }
 
-    const agentResponse = await requestAgentResponse(nextQuery);
+    const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
     if (searchRunIdRef.current !== currentRunId) {
       return;
     }

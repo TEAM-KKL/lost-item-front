@@ -8,6 +8,7 @@ type SearchResultCardProps = {
 
 export function SearchResultCard({ item }: SearchResultCardProps) {
   const isHighConfidence = item.confidence === "high";
+  const detailUrl = `https://minwon24.police.go.kr/cvlcpt/selectFindListDetail.do?&cvlcptId=MW-201&pkupCmdtyMngId=${encodeURIComponent(String(item.id))}&sortSn=1`;
 
   return (
     <article className="overflow-hidden rounded-xl bg-surface-container-low transition-shadow duration-300 hover:shadow-xl">
@@ -48,12 +49,14 @@ export function SearchResultCard({ item }: SearchResultCardProps) {
           <LocationIcon className="h-4 w-4" />
           {item.location} · {item.discoveredAt}
         </p>
-        <button
-          type="button"
-          className="mt-6 w-full rounded-lg bg-[linear-gradient(135deg,#00236f_0%,#1e3a8a_100%)] py-3 font-extrabold text-white transition-transform active:scale-95"
+        <a
+          href={detailUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-6 block w-full rounded-lg bg-[linear-gradient(135deg,#00236f_0%,#1e3a8a_100%)] py-3 text-center font-extrabold text-white transition-transform active:scale-95"
         >
           이거 내 거 같아요
-        </button>
+        </a>
       </div>
     </article>
   );

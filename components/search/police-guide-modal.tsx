@@ -124,6 +124,7 @@ export function PoliceGuideModal({
     ? error
     : guidance ||
       "경찰청 상세 페이지를 확인하고 있어요. 연락처와 방문 방법을 정리해서 바로 안내드릴게요.";
+  const detailUrl = `https://minwon24.police.go.kr/cvlcpt/selectFindListDetail.do?&cvlcptId=MW-201&pkupCmdtyMngId=${encodeURIComponent(String(item.id))}&sortSn=1`;
 
   return (
     <div
@@ -192,6 +193,16 @@ export function PoliceGuideModal({
                     {assistantText}
                   </p>
                   {detail ? <SourceFacts detail={detail} /> : null}
+                  <div className="mt-5">
+                    <a
+                      href={detailUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-white transition-transform hover:brightness-105 active:scale-[0.98]"
+                    >
+                      경찰청 상세 페이지로 이동
+                    </a>
+                  </div>
                 </>
               )}
             </div>

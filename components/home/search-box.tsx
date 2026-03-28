@@ -45,6 +45,11 @@ type AttachedImage = {
   previewUrl: string;
 };
 
+type SearchAgentResponse = {
+  sessionId?: string | null;
+  assistantMessage?: string | null;
+};
+
 const FIRST_BUBBLE_TARGET_Y_OFFSET = -6;
 
 const promptByField: Record<ClarifyField, PromptConfig> = {
@@ -129,6 +134,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [missingFields, setMissingFields] = useState<ClarifyField[]>([]);
+  const [searchSessionId, setSearchSessionId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Partial<Record<ClarifyField, string>>>(
     {},
   );
@@ -171,10 +177,18 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     };
   }, []);
 
-  function navigateToSearch(nextQuery: string) {
+  function navigateToSearch(nextQuery: string, sessionId?: string | null) {
     setSearchStage("navigating");
     startTransition(() => {
-      router.push(`/search?q=${encodeURIComponent(nextQuery)}`);
+      const params = new URLSearchParams({
+        q: nextQuery,
+      });
+
+      if (sessionId) {
+        params.set("sid", sessionId);
+      }
+
+      router.push(`/search?${params.toString()}`);
     });
   }
 
@@ -188,10 +202,38 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setAnswers({});
     setMessages([]);
     setMissingFields([]);
+    setSearchSessionId(null);
     setSearchStage("idle");
     setIsMorphingFirstBubble(false);
     setMorphBubble(null);
     morphStartRectRef.current = null;
+  }
+
+  async function requestAgentResponse(
+    nextQuery: string,
+    sessionId?: string | null,
+  ): Promise<SearchAgentResponse | null> {
+    try {
+      const response = await fetch("/api/search/text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: nextQuery,
+          sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = (await response.json()) as SearchAgentResponse;
+      return data;
+    } catch {
+      return null;
+    }
   }
 
   function handleSelectImage(event: ChangeEvent<HTMLInputElement>) {
@@ -289,6 +331,8 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   function openClarifyFlow(
     nextMissingFields: ClarifyField[],
     initialQuery: string,
+    assistantMessage?: string | null,
+    sessionId?: string | null,
   ) {
     const firstPrompt = promptByField[nextMissingFields[0]];
 
@@ -296,12 +340,16 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setDraftAnswer("");
     setAnswers({});
     setMissingFields(nextMissingFields);
+    setSearchSessionId(sessionId ?? null);
     setSearchStage("ready");
     setIsMorphingFirstBubble(true);
     morphStartRectRef.current = searchRowRef.current?.getBoundingClientRect() ?? null;
     setMessages([
       createMessage("user", initialQuery),
-      createMessage("assistant", firstPrompt.question),
+      createMessage(
+        "assistant",
+        assistantMessage?.trim() || firstPrompt.question,
+      ),
     ]);
 
     requestAnimationFrame(() => {
@@ -352,10 +400,21 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     if (searchRunIdRef.current !== currentRunId) {
       return;
     }
-    openClarifyFlow(assessment.missingFields, nextQuery);
+
+    const agentResponse = await requestAgentResponse(nextQuery);
+    if (searchRunIdRef.current !== currentRunId) {
+      return;
+    }
+
+    openClarifyFlow(
+      assessment.missingFields,
+      nextQuery,
+      agentResponse?.assistantMessage,
+      agentResponse?.sessionId,
+    );
   }
 
-  function handleSubmitAnswer(rawValue?: string) {
+  async function handleSubmitAnswer(rawValue?: string) {
     const answer = (rawValue ?? draftAnswer).trim();
     const currentField = missingFields[0];
 
@@ -369,6 +428,12 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       [currentField]: answer,
     };
     const nextMessages = [...messages, createMessage("user", answer)];
+    const nextQuery = buildSearchQuery(query, nextAnswers);
+    const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
+
+    if (agentResponse?.sessionId) {
+      setSearchSessionId(agentResponse.sessionId);
+    }
 
     if (remainingFields.length === 0) {
       setAnswers(nextAnswers);
@@ -377,7 +442,8 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
         ...nextMessages,
         createMessage(
           "assistant",
-          `좋아요. "${buildSearchQuery(query, nextAnswers)}" 기준으로 바로 찾아볼 수 있어요.`,
+          agentResponse?.assistantMessage?.trim() ||
+            `좋아요. "${nextQuery}" 기준으로 바로 찾아볼 수 있어요.`,
         ),
       ]);
       setDraftAnswer("");
@@ -390,7 +456,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     setMissingFields(remainingFields);
     setMessages([
       ...nextMessages,
-      createMessage("assistant", nextPrompt.question),
+      createMessage(
+        "assistant",
+        agentResponse?.assistantMessage?.trim() || nextPrompt.question,
+      ),
     ]);
     setDraftAnswer("");
   }
@@ -507,8 +576,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           firstUserBubbleRef={firstUserBubbleRef}
           hideFirstUserBubble={isMorphingFirstBubble}
           onDraftAnswerChange={setDraftAnswer}
-          onSubmitAnswer={() => handleSubmitAnswer()}
-          onSearchNow={() => navigateToSearch(summaryQuery)}
+          onSubmitAnswer={() => {
+            void handleSubmitAnswer();
+          }}
+          onSearchNow={() => navigateToSearch(summaryQuery, searchSessionId)}
           onClose={() => {
             resetChat();
             setIsChatOpen(false);

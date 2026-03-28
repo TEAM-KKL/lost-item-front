@@ -4,18 +4,17 @@ import { BoltIcon, LocationIcon, WalletIcon } from "@/components/ui/icons";
 
 type SearchResultCardProps = {
   item: SearchResult;
+  onSelect: () => void;
 };
 
-export function SearchResultCard({ item }: SearchResultCardProps) {
+export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
   const isHighConfidence = item.confidence === "high";
-  const detailUrl = `https://minwon24.police.go.kr/cvlcpt/selectFindListDetail.do?&cvlcptId=MW-201&pkupCmdtyMngId=${encodeURIComponent(String(item.id))}&sortSn=1`;
 
   return (
-    <a
-      href={detailUrl}
-      target="_blank"
-      rel="noreferrer"
-      className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group block w-full rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
     >
       <article className="overflow-hidden rounded-xl bg-surface-container-low transition-shadow duration-300 group-hover:shadow-xl">
         <div className="relative aspect-[4/3]">
@@ -60,6 +59,6 @@ export function SearchResultCard({ item }: SearchResultCardProps) {
           </span>
         </div>
       </article>
-    </a>
+    </button>
   );
 }

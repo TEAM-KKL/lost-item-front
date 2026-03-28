@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { LostItemsSearchResult } from "@/lib/lost-items-search";
+import type { LostItemsSearchResult } from "@/lib/lost-items-search-shared";
 
 type CachedSearchResult = {
   expiresAt: number;

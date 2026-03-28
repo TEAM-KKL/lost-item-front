@@ -16,6 +16,11 @@ import {
   type ChatMessage,
   SearchChatPanel,
 } from "@/components/home/search-chat-panel";
+import { searchLostItemsDirect } from "@/lib/lost-items-search-browser";
+import {
+  createSearchResultCacheKey,
+  saveSearchResultToSession,
+} from "@/lib/search-result-session-cache";
 import { PlusIcon, SearchIcon } from "@/components/ui/icons";
 
 type SearchBoxProps = {
@@ -47,7 +52,7 @@ type AttachedImage = {
 };
 
 type SearchAgentResponse = {
-  token?: string;
+  cacheKey?: string;
   sessionId?: string | null;
   assistantMessage?: string | null;
 };
@@ -112,12 +117,6 @@ function buildSearchQuery(
   return [baseQuery.trim(), answers.item, answers.location, answers.detail]
     .filter(Boolean)
     .join(", ");
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
 }
 
 function createSearchSessionId() {
@@ -197,7 +196,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
   function navigateToSearch(
     nextQuery: string,
     sessionId?: string | null,
-    token?: string,
+    cacheKey?: string,
   ) {
     setSearchStage("navigating");
     startTransition(() => {
@@ -209,8 +208,8 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
         params.set("sid", sessionId);
       }
 
-      if (token) {
-        params.set("token", token);
+      if (cacheKey) {
+        params.set("ck", cacheKey);
       }
 
       router.push(`/search?${params.toString()}`);
@@ -239,33 +238,22 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     sessionId?: string | null,
   ): Promise<SearchAgentResponse | null> {
     try {
-      const formData = new FormData();
       const normalizedQuery = nextQuery.trim();
       const latestImage = attachedImages[attachedImages.length - 1]?.file ?? null;
-
-      if (normalizedQuery) {
-        formData.set("query", normalizedQuery);
-      }
-
-      if (sessionId) {
-        formData.set("sessionId", sessionId);
-      }
-
-      if (latestImage) {
-        formData.set("file", latestImage);
-      }
-
-      const response = await fetch("/api/search/submit", {
-        method: "POST",
-        body: formData,
+      const result = await searchLostItemsDirect({
+        query: normalizedQuery,
+        sessionId: sessionId ?? undefined,
+        image: latestImage,
       });
 
-      if (!response.ok) {
-        return null;
-      }
+      const cacheKey = createSearchResultCacheKey();
+      saveSearchResultToSession(cacheKey, result);
 
-      const data = (await response.json()) as SearchAgentResponse;
-      return data;
+      return {
+        cacheKey,
+        sessionId: result.sessionId,
+        assistantMessage: result.assistantMessage,
+      };
     } catch {
       return null;
     }
@@ -411,11 +399,6 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     searchRunIdRef.current = currentRunId;
     setSearchStage("analyzing");
 
-    await wait(320);
-    if (searchRunIdRef.current !== currentRunId) {
-      return;
-    }
-
     if (hasAttachedImage) {
       setIsChatOpen(false);
       setSearchStage("navigating");
@@ -426,7 +409,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       navigateToSearch(
         nextQuery,
         agentResponse?.sessionId ?? searchSessionId,
-        agentResponse?.token,
+        agentResponse?.cacheKey,
       );
       return;
     }
@@ -434,15 +417,9 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     const assessment = assessQuery(nextQuery);
     setSearchStage("matching");
 
-    await wait(420);
-    if (searchRunIdRef.current !== currentRunId) {
-      return;
-    }
-
     if (assessment.missingFields.length === 0) {
       setIsChatOpen(false);
       setSearchStage("navigating");
-      await wait(280);
       if (searchRunIdRef.current !== currentRunId) {
         return;
       }
@@ -453,13 +430,12 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       navigateToSearch(
         nextQuery,
         agentResponse?.sessionId ?? searchSessionId,
-        agentResponse?.token,
+        agentResponse?.cacheKey,
       );
       return;
     }
 
     setSearchStage("clarifying");
-    await wait(320);
     if (searchRunIdRef.current !== currentRunId) {
       return;
     }
@@ -652,7 +628,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
               navigateToSearch(
                 summaryQuery,
                 agentResponse?.sessionId ?? searchSessionId,
-                agentResponse?.token,
+                agentResponse?.cacheKey,
               );
             })();
           }}

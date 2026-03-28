@@ -2,10 +2,10 @@ import { RecentItemsCarousel } from "@/components/home/recent-items-carousel";
 import { getRecentItems } from "@/lib/recent-items";
 
 export async function RecentItemsSection() {
-  const recentItems = await getRecentItems(15);
+  const recentItems = await getRecentItems(30);
 
   return (
-    <section className="bg-surface-container-low px-6 py-16">
+    <section className="bg-surface-container-low px-6 py-20">
       <div className="mx-auto max-w-7xl">
         <div className="flex items-end justify-between gap-4">
           <div>

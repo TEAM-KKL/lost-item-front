@@ -14,7 +14,7 @@ type RecentItemsCarouselProps = {
   items: RecentItem[];
 };
 
-const SCROLL_AMOUNT = 256;
+const SCROLL_AMOUNT = 168;
 const AUTO_SCROLL_PIXELS_PER_MS = 0.035;
 const INTERACTION_PAUSE_MS = 2200;
 
@@ -141,7 +141,7 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
 
   return (
     <div className="mt-10">
-      <div className="mb-4 flex justify-end gap-2">
+      <div className="mb-5 flex justify-end gap-2">
         <button
           type="button"
           onClick={() => scrollByAmount("left")}
@@ -162,7 +162,7 @@ export function RecentItemsCarousel({ items }: RecentItemsCarouselProps) {
 
       <div
         ref={scrollerRef}
-        className={`no-scrollbar flex gap-3 overflow-x-auto pb-4 ${
+        className={`no-scrollbar flex gap-2.5 overflow-x-auto pb-6 ${
           isDragging ? "cursor-grabbing select-none" : "cursor-grab"
         }`}
         style={{ touchAction: "pan-y" }}

@@ -3,9 +3,17 @@ import { TrackIcon } from "@/components/ui/icons";
 
 type SearchFollowUpCtaProps = {
   query: string;
+  sessionId?: string | null;
 };
 
-export function SearchFollowUpCta({ query }: SearchFollowUpCtaProps) {
+export function SearchFollowUpCta({
+  query,
+  sessionId,
+}: SearchFollowUpCtaProps) {
+  const href = sessionId
+    ? `/search?q=${encodeURIComponent(query)}&sid=${encodeURIComponent(sessionId)}`
+    : `/search?q=${encodeURIComponent(query)}`;
+
   return (
     <section id="track-search" className="mx-auto mt-24 max-w-3xl px-8 text-center">
       <div className="rounded-[1.75rem] border border-outline-variant/15 bg-surface-container-lowest p-12 shadow-[0_32px_64px_-16px_rgba(25,28,30,0.1)]">
@@ -21,7 +29,7 @@ export function SearchFollowUpCta({ query }: SearchFollowUpCtaProps) {
           전국의 분실물 데이터베이스에서 24시간 계속 찾아드립니다.
         </p>
         <Link
-          href={`/search?q=${encodeURIComponent(query)}`}
+          href={href}
           className="mx-auto mt-10 inline-flex items-center gap-3 rounded-xl bg-secondary-container px-8 py-4 text-lg font-extrabold text-on-secondary-container transition-all hover:brightness-95 active:scale-95"
         >
           <TrackIcon className="h-5 w-5" />

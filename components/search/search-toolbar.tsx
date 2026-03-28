@@ -2,6 +2,7 @@ import { ChevronDownIcon, LocationIcon, SearchIcon } from "@/components/ui/icons
 
 type SearchToolbarProps = {
   query: string;
+  sessionId?: string | null;
 };
 
 type FilterChip = {
@@ -15,11 +16,12 @@ const filterChips: FilterChip[] = [
   { label: "Location", icon: "location" },
 ];
 
-export function SearchToolbar({ query }: SearchToolbarProps) {
+export function SearchToolbar({ query, sessionId }: SearchToolbarProps) {
   return (
     <section className="mx-auto mb-12 max-w-7xl px-8">
       <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
         <form action="/search" className="w-full md:max-w-xl">
+          {sessionId ? <input type="hidden" name="sid" value={sessionId} /> : null}
           <label
             htmlFor="search-query"
             className="ml-1 block text-sm font-medium text-slate-500"

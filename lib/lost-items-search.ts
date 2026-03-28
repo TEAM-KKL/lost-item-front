@@ -145,6 +145,7 @@ function mapSearchResult(
 
 export async function searchLostItemsByText(
   query: string,
+  sessionId?: string,
 ): Promise<LostItemsSearchResult> {
   const apiBaseUrl = getApiBaseUrl();
 
@@ -166,6 +167,7 @@ export async function searchLostItemsByText(
         query,
         top_k: DEFAULT_TOP_K,
         use_agent: true,
+        session_id: sessionId ?? null,
       }),
       cache: "no-store",
     });

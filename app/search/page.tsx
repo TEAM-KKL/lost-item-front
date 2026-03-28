@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SearchFollowUpCta } from "@/components/search/search-followup-cta";
 import { SearchResultsGrid } from "@/components/search/search-results-grid";
+import { SearchSessionSync } from "@/components/search/search-session-sync";
 import { SearchStatusBanner } from "@/components/search/search-status-banner";
 import { SearchToolbar } from "@/components/search/search-toolbar";
 import { searchLostItemsByText } from "@/lib/lost-items-search";
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 type SearchPageProps = {
   searchParams: Promise<{
     q?: string;
+    sid?: string;
   }>;
 };
 
@@ -23,15 +25,22 @@ function getKeyword(query: string) {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const query = params.q?.trim() || "검은 가죽 지갑, 홍대입구";
+  const sessionId = params.sid?.trim() || undefined;
   const keyword = getKeyword(query);
-  const results = await searchLostItemsByText(query);
+  const results = await searchLostItemsByText(query, sessionId);
 
   return (
     <div className="pb-20 pt-10">
-      <SearchStatusBanner keyword={keyword} />
-      <SearchToolbar query={query} />
+      <SearchSessionSync sessionId={results.sessionId} />
+      <SearchStatusBanner
+        keyword={keyword}
+        assistantMessage={results.assistantMessage}
+        sessionId={results.sessionId}
+        searchTimeMs={results.searchTimeMs}
+      />
+      <SearchToolbar query={query} sessionId={results.sessionId} />
       <SearchResultsGrid items={results.items} />
-      <SearchFollowUpCta query={query} />
+      <SearchFollowUpCta query={query} sessionId={results.sessionId} />
     </div>
   );
 }

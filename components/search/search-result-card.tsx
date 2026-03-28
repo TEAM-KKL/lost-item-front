@@ -9,14 +9,16 @@ type SearchResultCardProps = {
 
 export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
   const isHighConfidence = item.confidence === "high";
+  const detailUrl = `https://minwon24.police.go.kr/cvlcpt/selectFindListDetail.do?&cvlcptId=MW-201&pkupCmdtyMngId=${encodeURIComponent(String(item.id))}&sortSn=1`;
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="group block w-full rounded-xl text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-    >
-      <article className="overflow-hidden rounded-xl bg-surface-container-low transition-shadow duration-300 group-hover:shadow-xl">
+    <article className="group overflow-hidden rounded-xl bg-surface-container-low transition-shadow duration-300 hover:shadow-xl">
+      <a
+        href={detailUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+      >
         <div className="relative aspect-[4/3]">
           {item.imageUrl ? (
             <Image
@@ -45,20 +47,24 @@ export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
             </span>
           </div>
         </div>
+      </a>
 
-        <div className="p-6">
-          <h3 className="font-headline text-xl font-bold text-on-surface">
-            {item.title}
-          </h3>
-          <p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
-            <LocationIcon className="h-4 w-4" />
-            {item.location} · {item.discoveredAt}
-          </p>
-          <span className="mt-6 block w-full rounded-lg bg-[linear-gradient(135deg,#00236f_0%,#1e3a8a_100%)] py-3 text-center font-extrabold text-white transition-transform group-active:scale-95">
-            이거 내 거 같아요
-          </span>
-        </div>
-      </article>
-    </button>
+      <div className="p-6">
+        <h3 className="font-headline text-xl font-bold text-on-surface">
+          {item.title}
+        </h3>
+        <p className="mt-2 flex items-center gap-1 text-sm text-slate-500">
+          <LocationIcon className="h-4 w-4" />
+          {item.location} · {item.discoveredAt}
+        </p>
+        <button
+          type="button"
+          onClick={onSelect}
+          className="mt-6 block w-full rounded-lg bg-[linear-gradient(135deg,#00236f_0%,#1e3a8a_100%)] py-3 text-center font-extrabold text-white transition-transform active:scale-95"
+        >
+          이거 내 거 같아요
+        </button>
+      </div>
+    </article>
   );
 }

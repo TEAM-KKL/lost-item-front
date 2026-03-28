@@ -1,5 +1,5 @@
 export type SearchResult = {
-  id: number;
+  id: number | string;
   title: string;
   location: string;
   discoveredAt: string;

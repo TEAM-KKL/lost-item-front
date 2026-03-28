@@ -3,7 +3,7 @@ import { SearchFollowUpCta } from "@/components/search/search-followup-cta";
 import { SearchResultsGrid } from "@/components/search/search-results-grid";
 import { SearchStatusBanner } from "@/components/search/search-status-banner";
 import { SearchToolbar } from "@/components/search/search-toolbar";
-import { searchResults } from "@/data/search-results";
+import { searchLostItemsByText } from "@/lib/lost-items-search";
 
 export const metadata: Metadata = {
   title: "FoundIt | 검색 결과",
@@ -24,12 +24,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const query = params.q?.trim() || "검은 가죽 지갑, 홍대입구";
   const keyword = getKeyword(query);
+  const results = await searchLostItemsByText(query);
 
   return (
     <div className="pb-20 pt-10">
       <SearchStatusBanner keyword={keyword} />
       <SearchToolbar query={query} />
-      <SearchResultsGrid items={searchResults} />
+      <SearchResultsGrid items={results.items} />
       <SearchFollowUpCta query={query} />
     </div>
   );

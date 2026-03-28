@@ -76,7 +76,7 @@ export function SearchResultsGrid({ items }: SearchResultsGridProps) {
 
   return (
     <>
-      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-8 md:grid-cols-2 lg:grid-cols-3">
+      <section className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-8 md:grid-cols-2 lg:grid-cols-4">
         {items.map((item) => (
           <SearchResultCard
             key={item.id}

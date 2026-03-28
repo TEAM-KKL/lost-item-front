@@ -16,9 +16,9 @@ export function SearchStatusBanner({ assistantMessage }: SearchStatusBannerProps
           <Image
             src="/back.svg"
             alt="찾았독"
-            width={48}
-            height={48}
-            className="h-12 w-12"
+            width={72}
+            height={72}
+            className="h-[4.5rem] w-[4.5rem]"
           />
         </div>
         <p className="mt-3 whitespace-pre-line text-sm leading-7 text-on-surface">

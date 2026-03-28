@@ -440,7 +440,15 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       if (searchRunIdRef.current !== currentRunId) {
         return;
       }
-      navigateToSearch(nextQuery, searchSessionId);
+      const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
+      if (searchRunIdRef.current !== currentRunId) {
+        return;
+      }
+      navigateToSearch(
+        nextQuery,
+        agentResponse?.sessionId ?? searchSessionId,
+        agentResponse?.token,
+      );
       return;
     }
 

@@ -49,7 +49,7 @@ export function SearchResultCard({ item, onSelect }: SearchResultCardProps) {
         </div>
       </a>
 
-      <div className="p-6">
+      <div className="py-6">
         <h3 className="font-headline text-xl font-bold text-on-surface">
           {item.title}
         </h3>

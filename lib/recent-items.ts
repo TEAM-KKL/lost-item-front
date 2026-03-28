@@ -5,7 +5,7 @@ import {
   type LostItemApiResult,
 } from "@/lib/lost-items-search-shared";
 
-const DEFAULT_RECENT_ITEMS_LIMIT = 4;
+const DEFAULT_RECENT_ITEMS_LIMIT = 12;
 const RECENT_ITEMS_REVALIDATE_SECONDS = 60;
 
 type RecentItemsApiResponse = {

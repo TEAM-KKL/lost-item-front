@@ -62,6 +62,11 @@ type ProgressStep = {
   label: string;
 };
 
+type ProgressTimeline = {
+  steps: ProgressStep[];
+  checkpoints: number[];
+};
+
 const FIRST_BUBBLE_TARGET_Y_OFFSET = -6;
 
 const promptByField: Record<ClarifyField, PromptConfig> = {
@@ -92,40 +97,38 @@ const promptByField: Record<ClarifyField, PromptConfig> = {
 const itemPattern =
   /(지갑|카드지갑|반지갑|장지갑|가방|백팩|열쇠|에어팟|이어폰|휴대폰|핸드폰|아이패드|노트북|우산|가디건|학생증|신분증)/;
 
-const SEARCH_PROGRESS_STEPS: ProgressStep[] = [
-  { id: "input", label: "검색어와 첨부 이미지를 확인하고 있어요" },
-  { id: "session", label: "이전 검색 흐름과 세션을 확인하고 있어요" },
-  { id: "vector", label: "비슷한 분실물을 빠르게 찾고 있어요" },
-  { id: "rerank", label: "관련도가 높은 결과만 다시 고르고 있어요" },
-  { id: "save", label: "검색 결과와 대화 기록을 정리하고 있어요" },
-];
+const SEARCH_PROGRESS_TIMELINE: ProgressTimeline = {
+  steps: [
+    { id: "session", label: "이전 검색 흐름과 세션을 정리하고 있어요" },
+    { id: "vector", label: "비슷한 분실물을 먼저 넓게 찾고 있어요" },
+    { id: "rerank", label: "관련도가 높은 결과만 다시 고르고 있어요" },
+    { id: "save", label: "검색 결과와 대화 기록을 정리하고 있어요" },
+  ],
+  checkpoints: [0, 1800, 4300, 6600],
+};
 
-const CLARIFY_PROGRESS_STEPS: ProgressStep[] = [
-  { id: "input", label: "검색어와 첨부 이미지를 확인하고 있어요" },
-  { id: "session", label: "이전 검색 흐름과 세션을 확인하고 있어요" },
-  { id: "vector", label: "비슷한 분실물을 먼저 살펴보고 있어요" },
-  { id: "clarify", label: "지금 더 물어봐야 할 내용을 정리하고 있어요" },
-];
+const CLARIFY_PROGRESS_TIMELINE: ProgressTimeline = {
+  steps: [
+    { id: "session", label: "이전 검색 흐름과 세션을 정리하고 있어요" },
+    { id: "vector", label: "비슷한 분실물을 먼저 살펴보고 있어요" },
+    { id: "clarify", label: "지금 더 물어봐야 할 내용을 정리하고 있어요" },
+  ],
+  checkpoints: [0, 2400, 5600],
+};
 
-function getProgressSteps(stage: SearchStage) {
-  return stage === "clarifying"
-    ? CLARIFY_PROGRESS_STEPS
-    : SEARCH_PROGRESS_STEPS;
-}
-
-function getProgressStartIndex(stage: SearchStage) {
-  switch (stage) {
-    case "analyzing":
-      return 0;
-    case "matching":
-      return 2;
-    case "clarifying":
-      return 2;
-    case "navigating":
-      return 4;
-    default:
-      return 0;
+function getProgressTimeline(stage: SearchStage): ProgressTimeline {
+  if (stage === "clarifying") {
+    return CLARIFY_PROGRESS_TIMELINE;
   }
+
+  if (stage === "navigating") {
+    return SEARCH_PROGRESS_TIMELINE;
+  }
+
+  return {
+    steps: [{ id: stage, label: "검색어와 첨부 정보를 확인하고 있어요" }],
+    checkpoints: [0],
+  };
 }
 
 function assessQuery(query: string) {
@@ -206,10 +209,11 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     () => buildSearchQuery(query, answers),
     [answers, query],
   );
-  const progressSteps = useMemo(
-    () => getProgressSteps(searchStage),
+  const progressTimeline = useMemo(
+    () => getProgressTimeline(searchStage),
     [searchStage],
   );
+  const progressSteps = progressTimeline.steps;
   const isSearchSubmitting =
     searchStage === "analyzing" ||
     searchStage === "matching" ||
@@ -218,14 +222,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     isPending;
   const isStatusVisible =
     searchStage !== "idle" && searchStage !== "ready";
-  const currentProgressIndex = Math.max(
-    activeProgressIndex,
-    getProgressStartIndex(searchStage),
-  );
 
   function updateSearchStage(nextStage: SearchStage) {
     setSearchStage(nextStage);
-    setActiveProgressIndex(getProgressStartIndex(nextStage));
+    setActiveProgressIndex(0);
   }
 
   useEffect(() => {
@@ -233,16 +233,22 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
       return;
     }
 
-    const timer = window.setInterval(() => {
-      setActiveProgressIndex((current) =>
-        current < progressSteps.length - 1 ? current + 1 : current,
+    if (progressTimeline.checkpoints.length <= 1) {
+      return;
+    }
+
+    const timers = progressTimeline.checkpoints
+      .slice(1)
+      .map((checkpoint, index) =>
+        window.setTimeout(() => {
+          setActiveProgressIndex(index + 1);
+        }, checkpoint),
       );
-    }, 1100);
 
     return () => {
-      window.clearInterval(timer);
+      timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [isStatusVisible, progressSteps, searchStage]);
+  }, [isStatusVisible, progressTimeline]);
 
   useEffect(() => {
     attachedImagesRef.current = attachedImages;
@@ -678,13 +684,13 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                   <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
                 </span>
-                {progressSteps[Math.min(currentProgressIndex, progressSteps.length - 1)]
+                {progressSteps[Math.min(activeProgressIndex, progressSteps.length - 1)]
                   ?.label ?? ""}
               </div>
               <div className="mt-3 space-y-2">
                 {progressSteps.map((step, index) => {
-                  const isCompleted = index < currentProgressIndex;
-                  const isCurrent = index === currentProgressIndex;
+                  const isCompleted = index < activeProgressIndex;
+                  const isCurrent = index === activeProgressIndex;
 
                   return (
                     <div

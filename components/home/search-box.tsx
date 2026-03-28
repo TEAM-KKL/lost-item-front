@@ -86,13 +86,24 @@ const detailPattern =
 
 function assessQuery(query: string) {
   const normalized = query.trim();
+  const hasItem = itemPattern.test(normalized);
+  const hasLocation = locationPattern.test(normalized);
+  const hasDetail = detailPattern.test(normalized);
+
+  if (!hasItem) {
+    return {
+      missingFields: ["item"] as ClarifyField[],
+    };
+  }
+
+  if (!hasLocation && !hasDetail) {
+    return {
+      missingFields: ["detail"] as ClarifyField[],
+    };
+  }
 
   return {
-    missingFields: [
-      !itemPattern.test(normalized) ? "item" : null,
-      !locationPattern.test(normalized) ? "location" : null,
-      !detailPattern.test(normalized) ? "detail" : null,
-    ].filter(Boolean) as ClarifyField[],
+    missingFields: [] as ClarifyField[],
   };
 }
 

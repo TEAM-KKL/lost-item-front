@@ -164,6 +164,12 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
     () => buildSearchQuery(query, answers),
     [answers, query],
   );
+  const isSearchSubmitting =
+    searchStage === "analyzing" ||
+    searchStage === "matching" ||
+    searchStage === "clarifying" ||
+    searchStage === "navigating" ||
+    isPending;
   const isStatusVisible =
     searchStage !== "idle" && searchStage !== "ready";
   const stageCopy =
@@ -569,10 +575,10 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={isPending}
+                  disabled={isSearchSubmitting}
                   className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
                 >
-                  {isPending ? "검색 중..." : "검색"}
+                  {isSearchSubmitting ? "검색 중..." : "검색"}
                 </button>
               </div>
 
@@ -629,7 +635,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           draftAnswer={draftAnswer}
           currentPrompt={currentPrompt ?? undefined}
           summaryQuery={missingFields.length === 0 ? summaryQuery : undefined}
-          isNavigating={isPending}
+          isNavigating={searchStage === "navigating" || isPending}
           firstUserBubbleRef={firstUserBubbleRef}
           hideFirstUserBubble={isMorphingFirstBubble}
           onDraftAnswerChange={setDraftAnswer}
@@ -638,6 +644,7 @@ export function SearchBox({ defaultQuery }: SearchBoxProps) {
           }}
           onSearchNow={() => {
             void (async () => {
+              setSearchStage("navigating");
               const agentResponse = await requestAgentResponse(
                 summaryQuery,
                 searchSessionId,

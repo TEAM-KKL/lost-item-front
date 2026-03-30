@@ -55,7 +55,7 @@ export function SearchChatPanel({
             </div>
             <div className="text-left">
               <p className="font-headline text-lg font-extrabold tracking-tight text-primary">
-                AI가 검색어를 다듬고 있어요
+                유사한 분실물을 찾을 수 없어 추가 정보가 필요해요
               </p>
             </div>
           </div>
@@ -103,7 +103,7 @@ export function SearchChatPanel({
                       isAssistant ? "text-primary/70" : "text-white/70"
                     }`}
                   >
-                    {isAssistant ? "AI" : "You"}
+                    {isAssistant ? "찾았독" : "You"}
                   </span>
                   <p className="text-sm leading-6">{message.text}</p>
                 </div>

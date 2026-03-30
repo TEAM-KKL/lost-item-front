@@ -5,7 +5,7 @@ import type { LostItemsSearchResult } from "@/lib/lost-items-search-shared";
 import { getSearchResult } from "@/lib/search-result-cache";
 
 export const metadata: Metadata = {
-  title: "FoundIt | 검색 결과",
+  title: "찾았독 | 검색 결과",
   description: "분실물 검색 결과와 AI 추적 상태를 확인할 수 있는 페이지입니다.",
 };
 

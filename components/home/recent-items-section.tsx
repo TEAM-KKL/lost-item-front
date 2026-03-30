@@ -8,7 +8,7 @@ export async function RecentItemsSection() {
     <section className="px-6 py-24">
       <div className="mx-auto max-w-7xl">
         <div className="flex justify-center">
-          <h2 className="text-center font-headline text-3xl font-extrabold text-primary">
+          <h2 className="text-center font-headline text-3xl font-extralight text-primary">
             최근 등록된 분실물
           </h2>
         </div>

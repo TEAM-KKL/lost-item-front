@@ -29,15 +29,6 @@ type SearchBoxProps = {
   defaultSessionId?: string | null;
 };
 
-type ClarifyField = "item" | "location" | "detail";
-
-type PromptConfig = {
-  title: string;
-  description: string;
-  suggestions: string[];
-  question: string;
-};
-
 type SearchStage =
   | "idle"
   | "analyzing"
@@ -58,6 +49,7 @@ type SearchAgentResponse = {
   cacheKey?: string;
   sessionId?: string | null;
   assistantMessage?: string | null;
+  itemCount: number;
 };
 
 type ProgressStep = {
@@ -72,33 +64,11 @@ type ProgressTimeline = {
 
 const FIRST_BUBBLE_TARGET_Y_OFFSET = -6;
 
-const promptByField: Record<ClarifyField, PromptConfig> = {
-  item: {
-    title: "어떤 물건인지 먼저 알려주세요",
-    description: "물건 종류가 있어야 비슷한 분실물을 우선 매칭할 수 있습니다.",
-    suggestions: ["지갑이에요", "에어팟이에요", "열쇠예요"],
-    question: "찾으시는 물건이 정확히 무엇인지 먼저 알려주세요.",
-  },
-  location: {
-    title: "마지막으로 본 장소가 어디인가요?",
-    description: "역 이름, 동네, 건물 이름처럼 좁혀질수록 결과가 더 정확해집니다.",
-    suggestions: ["홍대입구역 근처", "강남역 2번 출구", "버스 안에서"],
-    question: "좋아요. 마지막으로 본 위치를 한 군데만 알려주세요.",
-  },
-  detail: {
-    title: "특징을 하나만 더 알려주세요",
-    description: "색상, 재질, 브랜드, 케이스 유무 같은 단서가 있으면 매칭률이 크게 올라갑니다.",
-    suggestions: [
-      "검은 가죽이에요",
-      "브랜드 로고가 있어요",
-      "케이스 없이 본체만 있어요",
-    ],
-    question: "마지막으로 색상이나 재질, 브랜드 같은 특징을 하나만 더 알려주세요.",
-  },
+const CLARIFY_PROMPT = {
+  title: "추가 정보를 알려주세요",
+  description: "서버가 더 정확한 매칭을 위해 추가 정보를 요청했습니다.",
+  suggestions: [] as string[],
 };
-
-const itemPattern =
-  /(지갑|카드지갑|반지갑|장지갑|가방|백팩|열쇠|에어팟|이어폰|휴대폰|핸드폰|아이패드|노트북|우산|가디건|학생증|신분증)/;
 
 const SEARCH_PROGRESS_TIMELINE: ProgressTimeline = {
   steps: [
@@ -134,21 +104,6 @@ function getProgressTimeline(stage: SearchStage): ProgressTimeline {
   };
 }
 
-function assessQuery(query: string) {
-  const normalized = query.trim();
-  const hasItem = itemPattern.test(normalized);
-
-  if (!hasItem) {
-    return {
-      missingFields: ["item"] as ClarifyField[],
-    };
-  }
-
-  return {
-    missingFields: [] as ClarifyField[],
-  };
-}
-
 function createMessage(role: ChatMessage["role"], text: string): ChatMessage {
   return {
     id: `${role}-${text}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
@@ -159,9 +114,9 @@ function createMessage(role: ChatMessage["role"], text: string): ChatMessage {
 
 function buildSearchQuery(
   baseQuery: string,
-  answers: Partial<Record<ClarifyField, string>>,
+  followUpAnswer?: string,
 ) {
-  return [baseQuery.trim(), answers.item, answers.location, answers.detail]
+  return [baseQuery.trim(), followUpAnswer?.trim()]
     .filter(Boolean)
     .join(", ");
 }
@@ -172,6 +127,10 @@ function createSearchSessionId() {
   }
 
   return `search-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+}
+
+function getInitialClarifyUserMessage(query: string) {
+  return query.trim() || "이미지로 먼저 검색해 봤어요.";
 }
 
 export function SearchBox({
@@ -191,12 +150,8 @@ export function SearchBox({
   const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
   const [draftAnswer, setDraftAnswer] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [missingFields, setMissingFields] = useState<ClarifyField[]>([]);
   const [searchSessionId, setSearchSessionId] = useState<string | null>(
     () => defaultSessionId ?? createSearchSessionId(),
-  );
-  const [answers, setAnswers] = useState<Partial<Record<ClarifyField, string>>>(
-    {},
   );
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -210,11 +165,6 @@ export function SearchBox({
     style: CSSProperties;
   } | null>(null);
 
-  const currentPrompt = missingFields[0] ? promptByField[missingFields[0]] : null;
-  const summaryQuery = useMemo(
-    () => buildSearchQuery(query, answers),
-    [answers, query],
-  );
   const progressTimeline = useMemo(
     () => getProgressTimeline(searchStage),
     [searchStage],
@@ -319,9 +269,7 @@ export function SearchBox({
       morphTimeoutRef.current = null;
     }
     setDraftAnswer("");
-    setAnswers({});
     setMessages([]);
-    setMissingFields([]);
     setSearchSessionId((current) => current ?? createSearchSessionId());
     updateSearchStage("idle");
     setSubmitError(null);
@@ -351,6 +299,7 @@ export function SearchBox({
         cacheKey,
         sessionId: result.sessionId,
         assistantMessage: result.assistantMessage,
+        itemCount: result.items.length,
       };
     } catch {
       return null;
@@ -451,17 +400,14 @@ export function SearchBox({
   }
 
   function openClarifyFlow(
-    nextMissingFields: ClarifyField[],
     initialQuery: string,
-    assistantMessage?: string | null,
+    assistantMessage: string,
     sessionId?: string | null,
   ) {
-    const firstPrompt = promptByField[nextMissingFields[0]];
+    const userMessage = getInitialClarifyUserMessage(initialQuery);
 
     setIsChatOpen(true);
     setDraftAnswer("");
-    setAnswers({});
-    setMissingFields(nextMissingFields);
     setSearchSessionId(
       (current) => sessionId ?? current ?? createSearchSessionId(),
     );
@@ -469,11 +415,8 @@ export function SearchBox({
     setIsMorphingFirstBubble(true);
     morphStartRectRef.current = searchRowRef.current?.getBoundingClientRect() ?? null;
     setMessages([
-      createMessage("user", initialQuery),
-      createMessage(
-        "assistant",
-        assistantMessage?.trim() || firstPrompt.question,
-      ),
+      createMessage("user", userMessage),
+      createMessage("assistant", assistantMessage.trim()),
     ]);
 
     requestAnimationFrame(() => {
@@ -498,124 +441,82 @@ export function SearchBox({
     setSubmitError(null);
     updateSearchStage("analyzing");
 
-    if (hasAttachedImage) {
-      setIsChatOpen(false);
-      updateSearchStage("navigating");
-      const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
-      if (searchRunIdRef.current !== currentRunId) {
-        return;
-      }
-      if (!agentResponse?.cacheKey) {
-        updateSearchStage("idle");
-        setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
-        return;
-      }
-      navigateToSearch(
-        nextQuery,
-        {
-          sessionId: agentResponse?.sessionId ?? searchSessionId,
-          cacheKey: agentResponse?.cacheKey,
-          token: agentResponse?.token,
-        },
-      );
+    updateSearchStage(hasAttachedImage ? "navigating" : "matching");
+    const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
+    if (searchRunIdRef.current !== currentRunId) {
+      return;
+    }
+    if (!agentResponse?.cacheKey) {
+      updateSearchStage("idle");
+      setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
 
-    const assessment = assessQuery(nextQuery);
-    updateSearchStage("matching");
-
-    if (assessment.missingFields.length === 0) {
+    if (agentResponse.itemCount > 0 || !agentResponse.assistantMessage?.trim()) {
       setIsChatOpen(false);
-      updateSearchStage("navigating");
-      if (searchRunIdRef.current !== currentRunId) {
-        return;
-      }
-      const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
-      if (searchRunIdRef.current !== currentRunId) {
-        return;
-      }
-      if (!agentResponse?.cacheKey) {
-        updateSearchStage("idle");
-        setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
-        return;
-      }
       navigateToSearch(
         nextQuery,
         {
-          sessionId: agentResponse?.sessionId ?? searchSessionId,
-          cacheKey: agentResponse?.cacheKey,
-          token: agentResponse?.token,
+          sessionId: agentResponse.sessionId ?? searchSessionId,
+          cacheKey: agentResponse.cacheKey,
+          token: agentResponse.token,
         },
       );
       return;
     }
 
     updateSearchStage("clarifying");
-    if (searchRunIdRef.current !== currentRunId) {
-      return;
-    }
-
-    const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
-    if (searchRunIdRef.current !== currentRunId) {
-      return;
-    }
-
     openClarifyFlow(
-      assessment.missingFields,
       nextQuery,
-      agentResponse?.assistantMessage,
-      agentResponse?.sessionId,
+      agentResponse.assistantMessage,
+      agentResponse.sessionId,
     );
   }
 
   async function handleSubmitAnswer(rawValue?: string) {
     const answer = (rawValue ?? draftAnswer).trim();
-    const currentField = missingFields[0];
 
-    if (!answer || !currentField) {
+    if (!answer) {
       return;
     }
 
-    const remainingFields = missingFields.slice(1);
-    const nextAnswers = {
-      ...answers,
-      [currentField]: answer,
-    };
+    setSubmitError(null);
     const nextMessages = [...messages, createMessage("user", answer)];
-    const nextQuery = buildSearchQuery(query, nextAnswers);
+    const nextQuery = buildSearchQuery(query, answer);
+    setMessages(nextMessages);
+    setDraftAnswer("");
+    setQuery(nextQuery);
+    updateSearchStage("clarifying");
+
     const agentResponse = await requestAgentResponse(nextQuery, searchSessionId);
 
     if (agentResponse?.sessionId) {
       setSearchSessionId(agentResponse.sessionId);
     }
 
-    if (remainingFields.length === 0) {
-      setAnswers(nextAnswers);
-      setMissingFields([]);
-      setMessages([
-        ...nextMessages,
-        createMessage(
-          "assistant",
-          agentResponse?.assistantMessage?.trim() ||
-            `좋아요. "${nextQuery}" 기준으로 바로 찾아볼 수 있어요.`,
-        ),
-      ]);
-      setDraftAnswer("");
+    if (!agentResponse?.cacheKey) {
+      updateSearchStage("ready");
+      setSubmitError("검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
       return;
     }
 
-    const nextPrompt = promptByField[remainingFields[0]];
+    if (agentResponse.itemCount > 0 || !agentResponse.assistantMessage?.trim()) {
+      navigateToSearch(
+        nextQuery,
+        {
+          sessionId: agentResponse.sessionId ?? searchSessionId,
+          cacheKey: agentResponse.cacheKey,
+          token: agentResponse.token,
+        },
+      );
+      return;
+    }
 
-    setAnswers(nextAnswers);
-    setMissingFields(remainingFields);
     setMessages([
       ...nextMessages,
-      createMessage(
-        "assistant",
-        agentResponse?.assistantMessage?.trim() || nextPrompt.question,
-      ),
+      createMessage("assistant", agentResponse.assistantMessage.trim()),
     ]);
-    setDraftAnswer("");
+    updateSearchStage("ready");
   }
 
   return (
@@ -728,8 +629,7 @@ export function SearchBox({
           isOpen={isChatOpen}
           messages={messages}
           draftAnswer={draftAnswer}
-          currentPrompt={currentPrompt ?? undefined}
-          summaryQuery={missingFields.length === 0 ? summaryQuery : undefined}
+          currentPrompt={CLARIFY_PROMPT}
           isNavigating={searchStage === "navigating" || isPending}
           firstUserBubbleRef={firstUserBubbleRef}
           hideFirstUserBubble={isMorphingFirstBubble}
@@ -738,28 +638,7 @@ export function SearchBox({
             void handleSubmitAnswer();
           }}
           onSearchNow={() => {
-            void (async () => {
-              updateSearchStage("navigating");
-              const agentResponse = await requestAgentResponse(
-                summaryQuery,
-                searchSessionId,
-              );
-              if (!agentResponse?.cacheKey) {
-                updateSearchStage("ready");
-                setSubmitError(
-                  "검색 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.",
-                );
-                return;
-              }
-              navigateToSearch(
-                summaryQuery,
-                {
-                  sessionId: agentResponse?.sessionId ?? searchSessionId,
-                  cacheKey: agentResponse?.cacheKey,
-                  token: agentResponse?.token,
-                },
-              );
-            })();
+            void handleSubmitAnswer();
           }}
           onClose={() => {
             resetChat();

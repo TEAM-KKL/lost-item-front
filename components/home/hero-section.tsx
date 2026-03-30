@@ -1,6 +1,6 @@
 import { SearchBox } from "@/components/home/search-box";
 
-const defaultSearchQuery = "검은 가죽 지갑, 홍대입구";
+const defaultSearchQuery = "";
 
 export function HeroSection() {
   return (

@@ -646,7 +646,7 @@ export function SearchBox({
                   name="q"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="예: 검은 가죽 지갑, 홍대입구"
+                  placeholder="홍대에서 검은색 지갑"
                   className="w-full bg-transparent py-2 text-lg text-on-surface outline-none placeholder:text-outline-variant"
                 />
                 <input

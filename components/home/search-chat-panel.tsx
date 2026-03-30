@@ -63,7 +63,7 @@ export function SearchChatPanel({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-white"
+            className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-white/80 px-3 py-1.5 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-white"
           >
             접기
             <ChevronDownIcon className="h-4 w-4" />
@@ -130,7 +130,7 @@ export function SearchChatPanel({
               />
               <button
                 type="submit"
-                className="h-12 rounded-xl bg-primary px-6 text-sm font-extrabold text-on-primary transition-transform active:scale-95"
+                className="h-12 cursor-pointer rounded-xl bg-primary px-6 text-sm font-extrabold text-on-primary transition-transform active:scale-95"
               >
                 답변 보내기
               </button>
@@ -153,14 +153,14 @@ export function SearchChatPanel({
                   type="button"
                   onClick={onSearchNow}
                   disabled={isNavigating}
-                  className="rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+                  className="cursor-pointer rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
                 >
                   {isNavigating ? "검색 중..." : "이 정보로 검색하기"}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl border border-primary/15 bg-white px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
+                  className="cursor-pointer rounded-xl border border-primary/15 bg-white px-6 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/5"
                 >
                   조금 더 수정할게요
                 </button>

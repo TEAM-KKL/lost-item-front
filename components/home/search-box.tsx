@@ -660,7 +660,7 @@ export function SearchBox({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/12 bg-primary/5 text-primary transition-all hover:-translate-y-0.5 hover:bg-primary/10 active:scale-95"
+                  className="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-primary/12 bg-primary/5 text-primary transition-all hover:-translate-y-0.5 hover:bg-primary/10 active:scale-95"
                   aria-label="이미지 첨부"
                 >
                   <PlusIcon className="h-5 w-5" />
@@ -668,7 +668,7 @@ export function SearchBox({
                 <button
                   type="submit"
                   disabled={isSearchSubmitting}
-                  className="shrink-0 rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
+                  className="shrink-0 cursor-pointer rounded-xl bg-primary px-5 py-3 text-sm font-extrabold text-on-primary transition-transform active:scale-95 disabled:cursor-wait disabled:opacity-70"
                 >
                   {isSearchSubmitting ? "검색 중..." : "검색"}
                 </button>
@@ -690,7 +690,7 @@ export function SearchBox({
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(image.id)}
-                          className="absolute -right-1.5 -top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary shadow-[0_8px_16px_rgba(0,35,111,0.18)] transition-transform hover:scale-105 active:scale-95"
+                          className="absolute -right-1.5 -top-1.5 inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary shadow-[0_8px_16px_rgba(0,35,111,0.18)] transition-transform hover:scale-105 active:scale-95"
                           aria-label="첨부 이미지 제거"
                         >
                           ×

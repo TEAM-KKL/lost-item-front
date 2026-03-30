@@ -16,7 +16,7 @@ export function ItemCard({ item, onSelect }: ItemCardProps) {
         href={detailUrl}
         target="_blank"
         rel="noreferrer"
-        className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        className="pointer-events-none block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       >
         <div className="relative aspect-[1/1] bg-primary-fixed">
           {item.imageUrl ? (

@@ -1,38 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 찾았독
 
-## Getting Started
+찾았독은 잃어버린 물건을 자연어 설명이나 이미지로 검색하고, 유사한 분실물 후보와 수령 절차를 이어서 안내하는 분실물 탐색 서비스입니다.
 
-First, run the development server:
+사용자는 “홍대에서 잃어버린 검은색 지갑”처럼 기억나는 단서를 짧게 입력하거나 사진을 첨부할 수 있습니다. 찾았독은 입력된 정보를 바탕으로 분실물 데이터를 검색하고, 결과가 충분하지 않을 때는 더 정확한 매칭을 위해 추가 질문을 던집니다.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 서비스가 해결하는 문제
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+분실물을 찾는 과정은 보통 여러 기관과 검색 페이지를 직접 오가며 물건명, 장소, 날짜, 보관 장소를 반복해서 확인해야 합니다. 찾았독은 이 과정을 하나의 검색 흐름으로 묶어 사용자가 기억하는 단서를 바로 분실물 후보와 연결하는 데 초점을 둡니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+검색 결과를 보여주는 것에서 끝나지 않고, 사용자가 “이거 내 거 같아요”를 선택하면 경찰청 상세 정보를 바탕으로 어디에 연락해야 하는지, 방문 전에 무엇을 확인해야 하는지, 수령할 때 어떤 정보를 챙기면 좋은지까지 안내합니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 주요 기능
 
-## Learn More
+- 텍스트 기반 분실물 검색: 물건의 종류, 색상, 장소, 날짜 같은 단서를 문장으로 입력해 유사한 분실물을 찾습니다.
+- 이미지 기반 검색: 사용자가 첨부한 사진을 활용해 비슷한 외형의 분실물을 찾습니다.
+- 복합 검색: 텍스트 설명과 이미지를 함께 사용해 검색 정확도를 높입니다.
+- 추가 질문 흐름: 검색 단서가 부족하거나 후보가 불명확하면 챗봇 형태로 필요한 정보를 더 묻습니다.
+- 최근 등록 분실물 확인: 홈 화면에서 최근 등록된 분실물 목록을 바로 살펴볼 수 있습니다.
+- 매칭 결과 카드: 물품명, 보관 장소, 습득일, 매칭률, 이미지 정보를 카드 형태로 제공합니다.
+- 수령 안내 채팅: 경찰청 상세 페이지의 보관 장소, 연락처, 관리번호 등을 바탕으로 실제 수령 준비를 돕습니다.
 
-To learn more about Next.js, take a look at the following resources:
+## 사용자 흐름
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. 홈 화면에서 분실물 설명을 입력하거나 이미지를 첨부합니다.
+2. 찾았독이 유사한 분실물 후보를 검색합니다.
+3. 정보가 부족하면 추가 질문에 답해 검색 조건을 보완합니다.
+4. 검색 결과 화면에서 후보의 이미지, 장소, 날짜, 매칭률을 비교합니다.
+5. 내 물건으로 보이는 후보를 선택해 수령 안내를 확인합니다.
+6. 안내에 따라 보관 기관에 연락하거나 경찰청 상세 페이지에서 최종 정보를 확인합니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 서비스 특징
 
-## Deploy on Vercel
+찾았독은 단순 키워드 검색보다 사용자의 기억 방식에 맞춘 탐색 경험을 지향합니다. 정확한 물품명을 몰라도 색상, 재질, 장소, 상황처럼 단편적인 단서를 입력할 수 있고, 필요한 경우 대화형 질문으로 정보를 보완합니다.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+검색 결과는 사용자가 빠르게 비교할 수 있도록 시각적인 카드 중심으로 구성되어 있습니다. 또한 실제 수령 단계에서 필요한 연락처와 관리번호 같은 정보를 따로 찾아보지 않도록, 선택한 물품의 상세 내용을 바탕으로 다음 행동을 자연어로 정리합니다.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 데이터와 안내 범위
 
-Deployment test commit: 2026-03-30
+찾았독은 연결된 분실물 검색 API와 경찰청 상세 페이지 정보를 기반으로 후보와 수령 안내를 제공합니다. 서비스가 제안하는 결과는 사용자가 확인할 수 있도록 돕는 탐색 보조 정보이며, 최종 보관 여부와 수령 가능 여부는 보관 기관 또는 경찰청 상세 페이지에서 확인해야 합니다.
